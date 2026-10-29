@@ -3,28 +3,32 @@
 Levels (each includes none of the later ones): **I** implemented · **T** automated tests · **Q** booted in QEMU ·
 **H1** started on real hardware · **H2** functionally verified on real hardware · **R** released for installation.
 
-No component has reached H1. The only release-ready target is none. Test counts: 70 unit/integration tests and 5 QEMU
-boot-chain tests, all passing at the time of writing (see `tools/test-all.command`).
+No component has reached H1; no device is released. At the time of writing: 92 unit/integration tests, 5 x86_64 QEMU
+boot-chain tests and 1 ARMv7 (Buildroot) boot test, all passing (`tools/test-all.command`, `tools/build-arm.command`).
 
 | Component | I | T | Q | H1+ | Notes / known gaps |
 |---|---|---|---|---|---|
-| Library (SQLite, epub/fb2/cbz/txt metadata, covers, duplicates, collections, tags, search, rescan, DRM detection) | yes | yes | yes (self-test) | no | PDF/MOBI/AZW3/DJVU/RTF/HTML/CBR files are ignored (no decoder); series metadata only from epub/fb2 |
-| Reader (epub/fb2/txt text flow, cbz pages, TOC, search, bookmarks, highlights, position restore, reflow) | yes | yes | yes | no | Not done: PDF (zoom/crop/reflow), MOBI/AZW3, DJVU, RTF, HTML, CBR; hyphenation; dictionary; translation; images inside epub/fb2; night mode; custom touch zones; highlight creation by touch (API exists, no selection UI) |
-| Shell (home, library, detail, reader + menu, TOC, on-screen keyboard, discover, settings, dialogs) | yes | yes | yes (rendered) | no | Layout verified only at 1072x1448 and three other sizes as images; never on an E-Ink panel; no collections editor UI; no WLAN picker UI |
-| Settings (typed, validated, persisted, wired to display/power/reader/HAL) | yes | yes | yes | no | Frontlight/WLAN/battery depend on board sysfs paths that are unknown for all Kindles |
-| Display layer (diff-based partial/full refresh, rotation, 16-gray quantisation, backends) | yes | yes | yes (PNG) | no | No E-Ink controller backend exists (Kindle EPDC/MTK path unknown); no temperature compensation; no waveform selection |
-| Input (evdev decode, tap/long-press/swipe, keys) | yes | yes | no | no | Never fed from a real device node; only the first finger is tracked |
-| Power (standby/off/critical-battery policy) | yes | yes | policy only | no | No suspend/resume implementation, no wake sources, no measurements |
-| Init + supervisor + boot self-test | yes | yes | yes | no | Python PID 1; footprint on a Kindle unmeasured; no hardware watchdog |
-| Updater (Ed25519 signed packages, board/rollback checks, A/B trial boot, rollback, slot write+readback) | yes | yes | yes | no | Bootloader side is the shell script `bootctl-choose.sh` in the QEMU initramfs; on hardware it must be reproduced in the real bootloader (U-Boot env semantics) |
-| Recovery (verify, fsck, restore previous slot, export, factory reset) | yes | yes | yes | no | Separate initramfs, but started by the QEMU command line: an independent *hardware* recovery path (own boot media/key combo) does not exist |
-| Installer + gate | yes | yes | n/a | no | Refuses every device: no profile has identification rules, evidence or an install method. No flashing code exists |
-| Connect: OPDS client, WLAN upload server, folder sync | yes | yes (local test servers) | yes (loopback) | no | Not done: WLAN association/credentials, MTP/USB gadget, WebDAV, SFTP, real Calibre server test, authenticated catalogs |
-| SDK | manifest validation only | yes | no | no | No app runtime, sandbox or API |
+| Library (SQLite; epub, fb2, mobi/azw3, pdf, djvu, cbz/cbr, rtf, html, txt; covers, duplicates, collections, tags, search, rescan, DRM detection) | yes | yes | yes (self-test) | no | MOBI: HUFF/CDIC-compressed and encrypted files are refused; KF8 fragment order simplified (see `reader/mobi.py`); PDF/DjVu need PyMuPDF/djvulibre on the device |
+| Reader, flowing formats (epub, fb2, mobi/azw3, html, rtf, txt, PDF reflow) | yes | yes | yes | no | Hyphenation (pyphen, book language), inline images (epub, fb2, mobi), TOC, search, bookmarks, highlights/notes by long-press selection, dictionary lookup (StarDict), night mode, configurable back-tap zone, position restore. Not done: tables/CSS layout, footnote pop-ups, text-to-speech, font choice beyond serif/sans, images inside HTML files |
+| Reader, fixed layout (PDF via MuPDF, DjVu via djvulibre, cbz/cbr) | yes | yes | yes (PDF in ARM/x86 images) | no | Margin crop, 4 zoom steps with tile walking, search (PDF). No pinch gestures, no PDF annotations, no scanned-PDF OCR, no DRM PDFs |
+| Shell (home, library + collections editor, detail, reader + menu, selection panel, WLAN picker, statistics, USB mode, settings, dialogs, keyboard) | yes | yes | yes (rendered) | no | Never shown on an E-Ink panel; layouts verified as images at 4 sizes; UI strings German only (setting `system.language` exists, no English translation yet) |
+| Shell service (evdev -> gestures -> App -> display, power policy, suspend call) | yes | yes (FIFO as evdev) | yes (first frame) | no | Not run against a real touch device |
+| Settings | yes | yes | yes | no | Frontlight/battery/WLAN indicator depend on board sysfs paths that are unknown for all Kindles |
+| Display layer | yes | yes | yes (PNG) | no | No E-Ink controller backend (Kindle EPDC/MTK path unknown); no temperature compensation or waveform selection |
+| Input (evdev decode, tap/long-press/swipe, keys, axis scaling) | yes | yes | no | no | Only the first finger is tracked |
+| Power (policy) + suspend (`/sys/power/state` + RTC alarm) | yes | yes (fake sysfs) | **no** | no | In QEMU the guest enters s2idle but the emulated RTC alarm did not wake it, so resume is unverified. No wake-source configuration, no measurements |
+| Init + supervisor + boot self-test | yes | yes | yes (x86_64, ARMv7) | no | Python PID 1; footprint on a Kindle unmeasured; no hardware watchdog |
+| Updater: Ed25519-signed packages (device-side verification in pure Python, RFC 8032 vectors + cross-check against `cryptography`), board/rollback checks, A/B trial boot, rollback | yes | yes | yes (x86_64: trial, confirm, rollback; ARMv7: verification) | no | Bootloader side is a shell script in the QEMU initramfs; on hardware it must be reproduced in the real bootloader (U-Boot env semantics) |
+| Recovery | yes | yes | yes | no | Separate initramfs, started by the QEMU command line: an independent *hardware* recovery path does not exist |
+| Installer + gate | yes | yes | n/a | no | Refuses every device (no profile has identification rules, evidence or install method). No flashing code exists |
+| Connect: OPDS, WLAN (wpa_supplicant control), upload server, folder sync, WebDAV sync (ETag), credentials file (0600) | yes | yes (local servers, fake wpa_cli) | partly (loopback) | no | WLAN never run against a real supplicant/radio; credentials not encrypted at rest; SFTP not implemented; not tested against a real Calibre/Nextcloud |
+| USB mass-storage export (configfs gadget, unmounts before exporting) | yes | yes (fake configfs) | no | no | MTP not implemented; needs a UDC and a separate vfat books partition |
+| SDK | manifest validation only | yes | no | no | No app runtime or sandbox |
 | Board support (kernel, device tree, drivers) | **no** | - | - | no | All four Kindle profiles are `research`; KT6 is empty |
-| Reproducible build | yes | yes (two builds, identical hashes of squashfs/initramfs/pkg) | - | - | Same host toolchain only; Buildroot not used |
+| Buildroot ARMv7 cross build | yes | yes | yes (vexpress-a9, kernel 6.12.51) | - | Reference board, not a Kindle SoC |
+| Reproducible build (x86_64 images) | yes | yes (two builds, identical hashes) | - | - | Same host toolchain only; Buildroot output not yet checked for reproducibility |
 
-## What exists as artifacts
+## Artifacts
 
-`build/out/` (not committed): `rootfs-<ver>.squashfs`, `initramfs.cpio.gz`, `recovery.cpio.gz`, signed `update-*.pkg`,
-`vmlinuz` (Ubuntu's kernel, QEMU only), `SHA256SUMS`. None of these can run on a Kindle.
+`build/out/` (x86_64 QEMU) and `build/arm/images/` (ARMv7 QEMU), not committed. Ubuntu's kernel and Buildroot's vexpress kernel are for
+emulation only. None of these can run on a Kindle.

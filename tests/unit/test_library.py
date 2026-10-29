@@ -23,7 +23,7 @@ class LibraryTest(unittest.TestCase):
         F.make_fb2(self.p("b.fb2"))
         F.make_cbz(self.p("c.cbz"))
         F.make_txt(self.p("Karl Klar - Notizen.txt"))
-        F._w(self.p("x.pdf"), "%PDF-1.4")
+        F._w(self.p("x.odt"), "odt")
 
     def test_scan_extracts_metadata(self):
         self.make()

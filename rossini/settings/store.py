@@ -34,10 +34,16 @@ SCHEMA = {
     "reader.justify":           (True,  _bool,                            "Lesen"),
     "reader.indent":            (True,  _bool,                            "Lesen"),
     "reader.stats":             (False, _bool,                            "Lesen"),
+    "reader.hyphenation":       (True,  _bool,                            "Lesen"),
+    "reader.invert":            (False, _bool,                            "Lesen"),
+    "reader.prev_zone":         (30,    _int(10, 50),                     "Lesen"),
+    "reader.pdf_crop":          (True,  _bool,                            "Lesen"),
+    "reader.pdf_reflow":        (False, _bool,                            "Lesen"),
     "power.standby_s":          (600,   _int(30, 7200),                   "Energie"),
     "power.off_s":              (86400, _int(600, 30 * 86400),            "Energie"),
     "connect.opds_url":         ("",    _url,                             "Verbindungen"),
     "connect.sync_dir":         ("",    lambda v: isinstance(v, str),     "Verbindungen"),
+    "connect.webdav_url":       ("",    _url,                             "Verbindungen"),
     "system.language":          ("de",  _enum("de", "en"),                "System"),
 }
 

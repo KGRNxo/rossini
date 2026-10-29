@@ -45,10 +45,14 @@ extended is unknown (signature policy not verified): this is the main open techn
 * **Python userland.** Chosen for correctness and testability of a large amount of logic with few people. Cost: runtime
   footprint (the QEMU rootfs squashfs is ~25 MB including Python, Pillow, cryptography) and start-up time on slow CPUs.
   Unmeasured on any real reader. Hot paths (pagination, rendering) may move to C/Rust if measurements demand it.
-* **Own reader engine for text formats** instead of KOReader (crengine/MuPDF). It covers epub/fb2/txt/cbz only. For PDF, MOBI, DJVU
-  a native engine is required; embedding KOReader's engines (AGPL-3.0) behind the same `ReaderSession` interface is the likely route.
-* **Buildroot is not used yet.** The dev images are assembled by `tools/build_images.py` from host busybox/Python and a distro
-  kernel, which was enough to validate the boot chain but is not a cross-compiling ARM build. A Buildroot/Yocto tree
-  becomes necessary with the first real BSP.
+* **Own reader engine** instead of KOReader. Flowing formats are decoded and paginated by Rossini (Pillow metrics, pyphen
+  hyphenation); fixed-layout formats use MuPDF (PyMuPDF), djvulibre and bsdtar. KOReader's crengine would give better CSS/table
+  layout but brings a second UI toolkit and AGPL obligations; it is not needed for the current feature set.
+* **Two build paths.** `tools/build_images.py` assembles x86_64 QEMU images (A/B boot chain, recovery, updates) from host
+  busybox/Python and a distro kernel. `build/buildroot` is a Buildroot external tree that cross-compiles an ARMv7 image
+  (kernel 6.12.x, Python, Pillow, PyMuPDF); it proves cross-compilation and the ARM userland but has no A/B chain yet. A real BSP extends the
+  Buildroot tree.
+* **Updates verify in pure Python** (`rossini/updater/ed25519.py`, verify-only, RFC 8032 vectors) so the device carries no crypto
+  library for this; signing stays on the build host.
 * **No telemetry code exists**; there is no telemetry setting.
 * **Credentials are not stored** (no authenticated catalogs yet) rather than stored weakly.

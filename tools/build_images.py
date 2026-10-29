@@ -121,13 +121,14 @@ def python_into(root, full):
     os.symlink(PYVER, os.path.join(root, "usr/bin/python3"))
     copy_tree(STDLIB, os.path.join(root, STDLIB.lstrip("/")), skip=STDLIB_SKIP)
     if full:
-        for pkg in ("PIL", "cryptography", "pillow.libs", "cffi", "_cffi_backend"):
+        # the device verifies updates with the pure-Python Ed25519 code: no crypto package is shipped
+        for pkg in ("PIL", "pillow.libs", "pymupdf", "pyphen"):
             p = os.path.join(SITE, pkg)
             if os.path.isdir(p):
-                copy_tree(p, os.path.join(root, SITE.lstrip("/"), pkg), skip=("__pycache__",))
-        for f in os.listdir(SITE):
-            if f.startswith("_cffi_backend") and os.path.isfile(os.path.join(SITE, f)):
-                copy_file(os.path.join(SITE, f), os.path.join(root, SITE.lstrip("/"), f))
+                copy_tree(p, os.path.join(root, SITE.lstrip("/"), pkg), skip=("__pycache__", "layout", "mupdf-devel"))
+        for tool in ("ddjvu", "djvused", "bsdtar"):  # DjVu and CBR decoders, run as separate processes
+            if shutil.which(tool):
+                copy_file(shutil.which(tool), os.path.join(root, "usr/bin", tool))
 
 
 def rossini_into(root, full):

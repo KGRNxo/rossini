@@ -14,7 +14,8 @@ The exact state per component is in [docs/STATUS.md](docs/STATUS.md); what block
 ```bash
 ./tools/setup-macos.command      # once (macOS); on Linux: pip install -r requirements.txt
 ./tools/build-all.command        # squashfs slots, initramfs, recovery, signed update packages -> build/out
-./tools/test-all.command         # unit + integration + QEMU boot chain (QEMU part takes ~7 minutes without KVM)
+./tools/test-all.command         # unit + integration + QEMU boot chain (QEMU part takes ~10 minutes without KVM)
+./tools/build-arm.command        # optional: Buildroot ARMv7 cross build (30-60 min), then tests/qemu/test_qemu_arm.py
 ```
 
 Preview the shell without any build: `python3 -c "from rossini.shell.demo import make_app; ..."` (see docs/development/README.md).

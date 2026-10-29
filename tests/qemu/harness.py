@@ -8,7 +8,7 @@ import tempfile
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 OUT = os.environ.get("ROSSINI_OUT", os.path.join(ROOT, "build", "out"))
-SLOT_MB, BOOT_MB, DATA_MB = 96, 8, 160
+SLOT_MB, BOOT_MB, DATA_MB = 96, 8, 256
 
 
 def available():

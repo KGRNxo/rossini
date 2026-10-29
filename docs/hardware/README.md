@@ -14,7 +14,7 @@ does not determine them, and this project has not measured a device.
    booted at all, and is there a safe fallback to stock firmware? Until answered, no flashing code may be written.
 3. **Independent recovery.** A recovery path that survives a bad kernel (second boot medium, key-combo entry, hardware
    download mode) must exist and be tested *before* the first install. Unknown for KT6.
-4. **E-Ink driver.** The panel controller and its waveform handling must be identified. Rossini's `Display` needs a backend
+4. **E-Ink driver.** (`rossini/shell/main.py` selects the backend from `display.backend` in the board profile; only `png` and generic `fbdev:/dev/fbN` exist.) The panel controller and its waveform handling must be identified. Rossini's `Display` needs a backend
    implementing `update(image, bbox, mode)` on that controller (mxcfb/EPDC on i.MX6 devices, something else elsewhere).
 5. **Kernel.** Vendor kernel sources for the exact device (GPL source offers by the manufacturer), device tree, config, then
    WLAN/USB/battery/frontlight drivers.

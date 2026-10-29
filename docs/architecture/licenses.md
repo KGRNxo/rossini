@@ -13,7 +13,13 @@
 | Source Serif 4 | assets/fonts | SIL OFL 1.1 | `LICENSES/OFL-SourceSerif4.txt` |
 | Inter | assets/fonts | SIL OFL 1.1 | `LICENSES/OFL-Inter.txt` |
 | glibc and other shared libraries | rootfs | LGPL-2.1+ and others | copied from the build host by `ldd`; a full per-library list is not generated yet |
-| KOReader | **not included** | AGPL-3.0 | future engine candidate; AGPL requires source offer for network use |
+| PyMuPDF / MuPDF | rootfs (PDF) | **AGPL-3.0** (or commercial from Artifex) | Included in images: any distributed image must offer corresponding source under the AGPL; Rossini's GPL-3.0-or-later code is compatible with AGPL-3.0. Decide before any distribution: comply with AGPL or license MuPDF commercially |
+| pyphen | rootfs | GPL-2.0+ / LGPL-2.1+ / MPL-1.1 | hyphenation dictionaries come from LibreOffice (LGPL/MPL) |
+| djvulibre (ddjvu, djvused) | rootfs (DjVu) | GPL-2.0+ | run as separate processes |
+| libarchive (bsdtar) | rootfs (CBR) | BSD-2-Clause | |
+| wpa_supplicant | Buildroot ARM image | BSD-3-Clause | |
+| Buildroot | build/arm | GPL-2.0+ | build system only |
+| KOReader | **not included** | AGPL-3.0 | not needed any more for PDF/DjVu/MOBI; remains a candidate for crengine-quality layout |
 
 Redistributing any image requires shipping or offering the corresponding sources of the GPL/LGPL components; this has not
 been prepared and no image is meant for distribution yet.

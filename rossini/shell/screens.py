@@ -3,6 +3,7 @@ state lives on the screen object. German UI strings are the primary language."""
 import os
 import time
 
+from ..connect.credentials import Credentials
 from ..settings.store import SCHEMA
 from .canvas import INK, MUTE, PAPER, RULE, SOFT
 
@@ -19,6 +20,9 @@ class Screen:
         return False
 
     def tap_bg(self, g, app):
+        return False
+
+    def long_press(self, g, app):
         return False
 
     def header(self, c, y, title, back=None, app=None, right=None):
@@ -223,8 +227,9 @@ class BookDetail(Screen):
                     c.button((u(M) + i * (bw + u(16)), y, u(M) + i * (bw + u(16)) + bw, y + u(70)), f"Als {f['format'].upper()} lesen",
                              lambda fm=f["format"]: app.open_book(self.id, fm), size=26)
                 y += u(90)
-        bw = (c.w - 2 * u(M) - u(32)) // 3
+        bw = (c.w - 2 * u(M) - u(48)) // 4
         acts = [("Favorit ✓" if b["favorite"] else "Favorit", lambda: lib.set_favorite(self.id, not b["favorite"])),
+                ("Sammlungen", lambda: app.push(CollectionPicker(self.id))),
                 ("Als gelesen" if b["status"] != "finished" else "Als ungelesen",
                  lambda: lib.set_status(self.id, "finished" if b["status"] != "finished" else "unread")),
                 ("Entfernen", lambda: app.ask("Buch aus der Bibliothek entfernen? Die Datei bleibt erhalten.",
@@ -248,12 +253,15 @@ class ReaderScreen(Screen):
     def __init__(self, session):
         self.s, self.menu, self.mode = session, False, None  # mode: None | 'toc' | 'marks'
         self.toc_page = 0
+        self.sel, self.extending = None, False  # selected (start, end) and "tap the end word" state
 
     def draw(self, c, app):
         u, s = c.u, self.s
         c.im.paste(s.render())
         if self.mode:
             return self._list(c, app)
+        if self.sel:
+            return self._selection(c, app)
         if self.menu:
             c.d.rectangle((0, 0, c.w, u(120)), fill=PAPER)
             c.d.line((0, u(120), c.w, u(120)), fill=INK, width=2)
@@ -266,19 +274,59 @@ class ReaderScreen(Screen):
             c.progress(u(M), base + u(40), c.w - 2 * u(M), s.percent())
             c.text(u(M), base + u(64), f"Seite {s.page + 1} von {s.page_count}", 26, fill=MUTE)
             bw = (c.w - 2 * u(M) - 3 * u(16)) // 4
-            sz = app.ctx.settings.get("reader.font_size")
-            text = hasattr(s, "paginator")
-            btns = [("Inhalt", lambda: self._set_mode("toc"), text and bool(s.chapters())),
-                    ("Notizen", lambda: self._set_mode("marks"), True),
-                    ("A−", lambda: self._font(app, -2), text), ("A+", lambda: self._font(app, 2), text)]
+            if s.flowing:
+                size = [("A−", lambda: self._font(app, -2), True), ("A+", lambda: self._font(app, 2), True)]
+            else:
+                size = [("Zoom −", lambda: s.set_zoom(-1), s.zoom > 1.0), ("Zoom +", lambda: s.set_zoom(+1), s.zoom < 3.0)]
+            btns = [("Inhalt", lambda: self._set_mode("toc"), bool(s.chapters())), ("Notizen", lambda: self._set_mode("marks"), True)] + size
             for i, (label, fn, on) in enumerate(btns):
                 c.button((u(M) + i * (bw + u(16)), base + u(120), u(M) + i * (bw + u(16)) + bw, base + u(200)), label, fn, enabled=on, size=28)
-            c.button((u(M), base + u(214), u(M) + 2 * bw + u(16), base + u(284)), "Lesezeichen setzen", lambda: self._bookmark(app), size=26)
-            c.button((u(M) + 2 * bw + u(32), base + u(214), c.w - u(M), base + u(284)), "Suche",
-                     lambda: app.push(TextInput("Im Buch suchen", "", lambda t: self._search(app, t))), enabled=text, size=26)
+            tw = (c.w - 2 * u(M) - 2 * u(16)) // 3
+            night = app.ctx.settings.get("reader.invert")
+            row = [("Lesezeichen", lambda: self._bookmark(app), True),
+                   ("Suche", lambda: app.push(TextInput("Im Buch suchen", "", lambda t: self._search(app, t))),
+                    s.flowing or s.file["format"] == "pdf"),
+                   ("Tag" if night else "Nacht", lambda: self._toggle(app, "reader.invert"), True)]
+            for i, (label, fn, on) in enumerate(row):
+                c.button((u(M) + i * (tw + u(16)), base + u(214), u(M) + i * (tw + u(16)) + tw, base + u(284)), label, fn, enabled=on, size=26)
+
+    def _selection(self, c, app):
+        """Bottom panel for a selected word or passage: dictionary, highlight, note."""
+        u, s = c.u, self.s
+        a, b = self.sel
+        text = s.doc.text[a:b]
+        base = c.h - u(470)
+        c.d.rectangle((0, base, c.w, c.h), fill=PAPER)
+        c.d.line((0, base, c.w, base), fill=INK, width=3)
+        if self.extending:
+            c.paragraph(u(M), base + u(40), f"„{text[:80]}“ – tippe auf das letzte Wort der Markierung.", 32, c.w - 2 * u(M), 3)
+            c.button((u(M), c.h - u(120), c.w - u(M), c.h - u(40)), "Abbrechen", self._clear, size=28)
+            return
+        c.text(u(M), base + u(30), text if len(text) < 60 else text[:57] + "…", 36, bold=True, serif=True, maxw=c.w - 2 * u(M))
+        hits = app.dictionaries().lookup(text) if b - a < 40 else []
+        if hits:
+            name, word, definition = hits[0]
+            c.text(u(M), base + u(90), f"{word} · {name}", 24, fill=MUTE, maxw=c.w - 2 * u(M))
+            c.paragraph(u(M), base + u(126), definition, 30, c.w - 2 * u(M), 4)
+        elif b - a < 40:
+            c.paragraph(u(M), base + u(100), "Kein Eintrag in den installierten Wörterbüchern." if app.dictionaries().dicts
+                        else "Keine Wörterbücher installiert (StarDict-Dateien in „dictionaries“ ablegen).", 28, c.w - 2 * u(M), 2, fill=MUTE)
+        bw = (c.w - 2 * u(M) - 3 * u(16)) // 4
+        acts = [("Markieren", lambda: (s.highlight(a, b), self._clear())),
+                ("Notiz", lambda: app.push(TextInput("Notiz", "", lambda t: (s.highlight(a, b, t or None), self._clear(), app.back())))),
+                ("Erweitern", lambda: setattr(self, "extending", True)), ("Schließen", self._clear)]
+        for i, (label, fn) in enumerate(acts):
+            c.button((u(M) + i * (bw + u(16)), c.h - u(120), u(M) + i * (bw + u(16)) + bw, c.h - u(40)), label, fn, primary=i == 0, size=26)
+
+    def _clear(self):
+        self.sel, self.extending = None, False
 
     def _set_mode(self, m):
         self.mode, self.toc_page = m, 0
+
+    def _toggle(self, app, key):
+        app.ctx.settings.set(key, not app.ctx.settings.get(key))
+        app.apply_reader_settings()
 
     def _font(self, app, d):
         app.ctx.settings.set("reader.font_size", max(18, min(90, app.ctx.settings.get("reader.font_size") + d)))
@@ -309,8 +357,8 @@ class ReaderScreen(Screen):
             items = []
             for a in app.ctx.lib.annotations(s.book_id):
                 kind = {"bookmark": "Lesezeichen", "highlight": "Markierung", "note": "Notiz"}[a["kind"]]
-                text = (a["text"] or "")[:60]
-                items.append((f"{kind}: {text}", lambda o=a["start"]: (s.goto_offset(o) if hasattr(s, "paginator") else s.goto_page(o), self._close())))
+                text = (a["note"] + " – " if a["note"] else "") + (a["text"] or "")
+                items.append((f"{kind}: {text[:70]}", lambda o=a["start"]: (s.goto_offset(o), self._close())))
             title = "Lesezeichen und Markierungen"
         y = self.header(c, u(100), title, back=self._close)
         rows = (c.h - y - u(160)) // u(100)
@@ -330,23 +378,41 @@ class ReaderScreen(Screen):
         self.mode = None
         self.menu = False
 
+    def long_press(self, g, app):
+        if self.mode or self.menu or not self.s.flowing:
+            return False
+        hit = self.s.word_at(g.x, g.y)
+        if hit:
+            self.sel, self.extending = hit, False
+            return True
+        return False
+
     def tap_bg(self, g, app):
-        w = app.display.logical_size[0]
+        w, h = app.display.logical_size
         if self.mode:
             return False
+        if self.sel:
+            if self.extending:
+                hit = self.s.word_at(g.x, g.y)
+                if hit:
+                    self.sel, self.extending = (min(self.sel[0], hit[0]), max(self.sel[1], hit[1])), False
+            else:
+                self._clear()
+            return True
         if self.menu:
             self.menu = False
             return True
-        if g.x < w * 0.3:
+        back_zone = app.ctx.settings.get("reader.prev_zone") / 100
+        if g.x < w * back_zone:
             self.s.prev_page()
-        elif g.x > w * 0.7 or g.y > app.display.logical_size[1] * 0.75:
+        elif g.x > w * 0.7 or g.y > h * 0.75 or back_zone >= 0.5:
             self.s.next_page()
         else:
             self.menu = True
         return True
 
     def swipe(self, direction, app):
-        if self.mode or self.menu:
+        if self.mode or self.menu or self.sel:
             return False
         if direction == "left":
             self.s.next_page()
@@ -471,13 +537,19 @@ LABELS = {
     "reader.justify": ("Blocksatz", "toggle"),
     "reader.indent": ("Absatzeinzug", "toggle"),
     "reader.stats": ("Lesestatistik speichern", "toggle"),
+    "reader.hyphenation": ("Silbentrennung", "toggle"),
+    "reader.invert": ("Nachtmodus (invertiert)", "toggle"),
+    "reader.prev_zone": ("Zurückblättern: linker Bereich", "step", 5, " %"),
+    "reader.pdf_crop": ("PDF: Ränder abschneiden", "toggle"),
+    "reader.pdf_reflow": ("PDF: als Fließtext", "toggle"),
     "power.standby_s": ("Standby nach", "step", 60, " s"),
     "power.off_s": ("Ausschalten nach", "step", 3600, " s"),
     "connect.opds_url": ("OPDS-Katalog", "text"),
     "connect.sync_dir": ("Sync-Ordner", "text"),
+    "connect.webdav_url": ("WebDAV-Adresse", "text"),
     "system.language": ("Sprache", "choice", {"de": "Deutsch", "en": "English"}),
 }
-GROUPS = ["Anzeige", "Lesen", "Energie", "Verbindungen", "Speicher", "Datenschutz", "System"]
+GROUPS = ["Anzeige", "Lesen", "Energie", "Verbindungen", "Speicher", "Datenschutz", "System", "Lesestatistik"]
 
 
 class SettingsMenu(Screen):
@@ -488,7 +560,7 @@ class SettingsMenu(Screen):
             c.text(u(M), y + u(22), g, 38)
             c.icon("chevron", c.w - u(M + 20), y + u(46), u(28), fill=MUTE)
             c.rule(y + u(100), fill=SOFT)
-            c.hit((0, y, c.w, y + u(100)), lambda g=g: app.push(SettingsGroup(g)))
+            c.hit((0, y, c.w, y + u(100)), lambda g=g: app.push(StatsScreen() if g == "Lesestatistik" else SettingsGroup(g)))
             y += u(106)
 
 
@@ -524,6 +596,23 @@ class SettingsGroup(Screen):
                 c.button((right - u(190), y + u(8), right, y + u(84)), "Ändern", lambda k=key, v=v: app.push(TextInput(LABELS[k][0], v, lambda t, k=k: (self.set(app, k, t.strip()), app.back()))), size=26)
             c.rule(y + u(112), fill=SOFT)
             y += u(120)
+        if self.group == "Verbindungen":
+            self._connections(c, app, y + u(20))
+
+    def _connections(self, c, app, y):
+        u, ctx = c.u, app.ctx
+        cred = Credentials(os.path.join(ctx.data_dir, "rossini", "credentials.json"))
+        user = cred.get("webdav")[0]
+        acts = [("WLAN", lambda: app.push(WifiScreen()), True),
+                (f"WebDAV-Zugang ({user})" if user else "WebDAV-Zugang eingeben", lambda: app.push(TextInput(
+                    "WebDAV-Benutzername", user or "", lambda name: app.push(TextInput(
+                        "WebDAV-Passwort", "", lambda pw: (cred.set("webdav", name.strip(), pw), app.back(), app.back())))))
+                 , True),
+                ("Jetzt synchronisieren", lambda: run_sync(app), bool(ctx.settings.get("connect.sync_dir") or ctx.settings.get("connect.webdav_url"))),
+                ("USB-Übertragung starten", lambda: start_usb(app), ctx.usb is not None)]
+        for label, fn, on in acts:
+            c.button((u(M), y, c.w - u(M), y + u(84)), label, fn, enabled=on, size=28)
+            y += u(100)
 
     @staticmethod
     def _n(v):
@@ -575,6 +664,147 @@ class SettingsGroup(Screen):
                          lambda k=key, l=label: app.ask(f"{l}? Gelesene Position und Einstellungen werden vorher gesichert.",
                                                         ("Abbrechen", lambda: None), (l, lambda: (app.shutdown(), ctx.actions[k]()))))
                 y += u(110)
+
+
+def run_sync(app):
+    from ..connect import sync
+    ctx, done = app.ctx, []
+    try:
+        if ctx.settings.get("connect.sync_dir"):
+            sync.sync_dir(ctx.lib, ctx.settings.get("connect.sync_dir"))
+            done.append("Ordner")
+        if ctx.settings.get("connect.webdav_url"):
+            user, pw = Credentials(os.path.join(ctx.data_dir, "rossini", "credentials.json")).get("webdav")
+            sync.sync_webdav(ctx.lib, ctx.settings.get("connect.webdav_url"), user, pw)
+            done.append("WebDAV")
+        app.toast("Synchronisiert: " + ", ".join(done) + ".")
+    except Exception as e:
+        app.toast(f"Synchronisierung fehlgeschlagen ({type(e).__name__}: {e}). Lokale Daten sind unverändert erhalten.")
+
+
+def start_usb(app):
+    app.close_reader()
+    try:
+        app.ctx.usb.start()
+    except OSError as e:
+        app.toast(str(e))
+        return
+    app.push(UsbScreen())
+
+
+class UsbScreen(Screen):
+    fullscreen = True
+
+    def draw(self, c, app):
+        u = c.u
+        c.text(u(M), u(200), "Mit Computer verbunden", 52, bold=True)
+        c.paragraph(u(M), u(300), "Kopiere Bücher in das Laufwerk „Rossini“. Werfe das Laufwerk am Computer aus und tippe dann auf „Trennen“. "
+                    "Danach werden neue Bücher eingelesen.", 34, c.w - 2 * u(M), gap=1.45)
+        c.button((u(M), u(600), c.w - u(M), u(700)), "Trennen", lambda: self._stop(app), primary=True)
+
+    def _stop(self, app):
+        try:
+            app.ctx.usb.stop()
+        except OSError as e:
+            app.toast(str(e))
+            return
+        app.stack.pop()
+        S_scan(app)
+
+
+class WifiScreen(Screen):
+    def __init__(self):
+        self.nets, self.error = None, None
+
+    def draw(self, c, app):
+        u, wifi = c.u, app.ctx.wifi
+        y = self.header(c, u(100), "WLAN", back=app.back, right=("Suchen", lambda: self._scan(app)) if wifi else None)
+        if not wifi:
+            c.paragraph(u(M), y, "Dieses Gerät hat keinen nutzbaren WLAN-Adapter oder wpa_supplicant läuft nicht.", 34, c.w - 2 * u(M))
+            return
+        try:
+            st = wifi.status()
+        except Exception as e:
+            st = {}
+            self.error = f"WLAN-Dienst nicht erreichbar ({type(e).__name__})."
+        state = f"Verbunden mit {st.get('ssid')} ({st.get('ip_address', 'ohne IP')})" if st.get("wpa_state") == "COMPLETED" else "Nicht verbunden"
+        c.text(u(M), y - u(10), state, 30, fill=MUTE, maxw=c.w - 2 * u(M))
+        y += u(60)
+        if self.error:
+            c.paragraph(u(M), y, self.error, 30, c.w - 2 * u(M))
+            y += u(100)
+        if self.nets is None:
+            self._scan(app)
+        for n in (self.nets or [])[:8]:
+            c.text(u(M), y + u(20), n.ssid, 36, bold=n.saved_id is not None, maxw=c.w - u(2 * M + 260))
+            c.text(c.w - u(M), y + u(24), ("gespeichert · " if n.saved_id else "") + ("gesichert" if n.secured else "offen"), 24, fill=MUTE, anchor="r")
+            c.rule(y + u(96), fill=SOFT)
+            c.hit((0, y, c.w, y + u(100)), lambda n=n: self._choose(app, n))
+            y += u(104)
+
+    def _scan(self, app):
+        try:
+            self.nets, self.error = app.ctx.wifi.scan(), None
+        except Exception as e:
+            self.nets, self.error = [], f"Suche fehlgeschlagen ({type(e).__name__})."
+
+    def _choose(self, app, n):
+        wifi = app.ctx.wifi
+        def connect(pw=None):
+            try:
+                wifi.connect(n.ssid, pw)
+                app.toast(f"Verbinde mit {n.ssid} …")
+            except (ValueError, RuntimeError) as e:
+                app.toast(str(e))
+        if n.saved_id is not None:
+            app.ask(n.ssid, ("Vergessen", lambda: (wifi.forget(n.ssid), self._scan(app))), ("Verbinden", lambda: wifi.cli("select_network", n.saved_id)))
+        elif n.secured:
+            app.push(TextInput(f"Passwort für {n.ssid}", "", lambda pw: (app.back(), connect(pw))))
+        else:
+            connect()
+
+
+class StatsScreen(Screen):
+    def draw(self, c, app):
+        u, lib = c.u, app.ctx.lib
+        y = self.header(c, u(100), "Lesestatistik", back=app.back)
+        if not app.ctx.settings.get("reader.stats"):
+            c.paragraph(u(M), y, "Die Statistik ist ausgeschaltet. Einschalten unter Einstellungen › Lesen › Lesestatistik speichern. "
+                        "Lesen funktioniert unabhängig davon.", 32, c.w - 2 * u(M), gap=1.45)
+            return
+        st = lib.stats()
+        for label, val in (("Lesezeit gesamt", f"{st['seconds'] // 3600} h {st['seconds'] // 60 % 60} min"),
+                           ("Umgeblätterte Seiten", str(st["pages"])), ("Gelesene Bücher", str(st["finished"]))):
+            c.text(u(M), y + u(22), label, 34); c.text(c.w - u(M), y + u(22), val, 34, anchor="r", bold=True); c.rule(y + u(100), fill=SOFT); y += u(106)
+        y += u(30)
+        c.text(u(M), y, "Monate", 30, bold=True, fill=MUTE)
+        y += u(60)
+        for m in lib.stats_by_month():
+            c.text(u(M), y, m["month"], 30)
+            c.text(c.w - u(M), y, f"{m['seconds'] // 60} min · {m['pages']} Seiten · {m['books']} Bücher", 28, anchor="r")
+            y += u(56)
+
+
+class CollectionPicker(Screen):
+    def __init__(self, book_id):
+        self.id = book_id
+
+    def draw(self, c, app):
+        u, lib = c.u, app.ctx.lib
+        y = self.header(c, u(100), "Sammlungen", back=app.back,
+                        right=("Neu", lambda: app.push(TextInput("Neue Sammlung", "", lambda t: (t.strip() and lib.collection_add(t.strip(), self.id), app.back())))))
+        mine = set(lib.book_collections(self.id))
+        cols = lib.collections()
+        if not cols:
+            c.text(u(M), y, "Noch keine Sammlungen. Lege mit „Neu“ eine an.", 32, fill=MUTE)
+        for col in cols[:10]:
+            on = col["name"] in mine
+            c.text(u(M), y + u(22), col["name"], 36, bold=on, maxw=c.w - u(2 * M + 220))
+            c.button((c.w - u(M + 190), y + u(8), c.w - u(M), y + u(84)), "Enthalten" if on else "Hinzufügen",
+                     (lambda n=col["name"]: lib.collection_remove(n, self.id)) if on else (lambda n=col["name"]: lib.collection_add(n, self.id)),
+                     primary=on, size=24)
+            c.rule(y + u(100), fill=SOFT)
+            y += u(108)
 
 
 def export_user_data(ctx):

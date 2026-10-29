@@ -170,6 +170,56 @@ class ShellTest(unittest.TestCase):
         kb.shift = True; kb._add("A")
         self.assertEqual((kb.text, kb.shift), ("hiA", False))
 
+    def test_long_press_dictionary_highlight_and_extend(self):
+        from tests import fixtures as F
+        app = self.app
+        F.make_stardict(os.path.join(app.ctx.data_dir, "dictionaries"), "de")
+        bid = app.ctx.lib.books(query="Hafenlicht")[0]["id"]
+        app.open_book(bid); app.render()
+        s = app.reader
+        box = next(b for b in s.word_boxes if s.doc.text[b[4]:b[5]] == "Mond")
+        app.handle(Gesture("long_press", int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2)))
+        scr = app.stack[-1]
+        self.assertEqual(scr.sel, (box[4], box[5]))
+        app.render()
+        self.assertEqual(app.dictionaries().lookup("Mond")[0][2], "Erdtrabant; moon")
+        # extend to a later word, then highlight
+        scr.extending = True
+        later = next(b for b in s.word_boxes if b[4] > box[5] + 20)
+        tap(app, int((later[0] + later[2]) / 2), int((later[1] + later[3]) / 2))
+        self.assertEqual(scr.sel, (box[4], later[5]))
+        app.render()
+        rect, _ = next(h for h in app.hits if h[0][1] > app.display.logical_size[1] - 200)  # "Markieren"
+        tap(app, (rect[0] + rect[2]) // 2, (rect[1] + rect[3]) // 2)
+        ann = app.ctx.lib.annotations(bid, "highlight")
+        self.assertEqual((ann[0]["start"], ann[0]["end"]), (box[4], later[5]))
+        self.assertIsNone(scr.sel)
+
+    def test_touch_zone_setting(self):
+        app = self.app
+        app.open_book(app.ctx.lib.books(query="Hafenlicht")[0]["id"]); app.render()
+        w, h = app.display.logical_size
+        app.ctx.settings.set("reader.prev_zone", 50)
+        app.reader.goto_page(3)
+        tap(app, int(w * 0.45), h // 2)
+        self.assertEqual(app.reader.page, 2)
+        tap(app, int(w * 0.55), h // 2)  # with a 50 % back zone there is no menu zone: forward
+        self.assertEqual(app.reader.page, 3)
+
+    def test_pdf_zoom_from_menu(self):
+        from tests import fixtures as F
+        app = self.app
+        p = F.make_pdf(os.path.join(app.ctx.library_dirs[0], "z.pdf"))
+        app.ctx.lib.scan(p)
+        app.open_book(app.ctx.lib.books(query="PDF Titel")[0]["id"])
+        scr = app.stack[-1]
+        scr.menu = True
+        app.render()
+        row = [h[0] for h in app.hits if h[0][1] > app.display.logical_size[1] - 200]
+        rect = max((r for r in row if r[1] == row[0][1]), key=lambda r: r[0])  # rightmost of the first row: "Zoom +"
+        tap(app, (rect[0] + rect[2]) // 2, (rect[1] + rect[3]) // 2)
+        self.assertEqual(app.reader.zoom, 1.5)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 say() { printf '\033[1m==> %s\033[0m\n' "$*"; }
 command -v brew >/dev/null || { echo "Homebrew fehlt. Installation: https://brew.sh"; exit 1; }
 say "Homebrew-Pakete"
-brew install python@3.13 qemu colima docker git e2fsprogs 2>&1 | tail -n 3
+brew install python@3.13 qemu colima docker git e2fsprogs djvulibre libarchive 2>&1 | tail -n 3
 say "Python-Umgebung (.venv)"
 /opt/homebrew/bin/python3.13 -m venv .venv 2>/dev/null || python3 -m venv .venv
 .venv/bin/pip install --quiet --upgrade pip
