@@ -1,0 +1,12 @@
+{
+  "id": "qemu-x86_64",
+  "name": "QEMU x86_64 development target",
+  "kind": "emulator",
+  "arch": "x86_64",
+  "release_status": "development-only",
+  "display": {"width": 1072, "height": 1448, "ppi": 300, "note": "reference test geometry, not a real panel"},
+  "sysfs": {},
+  "slots": {"A": "/dev/vda", "B": "/dev/vdb"},
+  "boot_dev": "/dev/vdc",
+  "data_dev": "/dev/vdd"
+}

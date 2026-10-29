@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+build/out/
+build/work/
+*.key
+.keys/
+releases/*.tar.gz
+releases/*.sha256
+rossini-diagnose-*.json
+rossini-hwdiag-*.txt

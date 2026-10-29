@@ -1,0 +1,83 @@
+{
+  "id": "kindle-voyage",
+  "name": "Amazon Kindle Voyage (2014)",
+  "kind": "hardware",
+  "release_status": "research",
+  "arch": null,
+  "identification": {
+    "rules": [],
+    "note": "No identification rule exists: model, SoC and bootloader must be confirmed from real device data (tools/hwdiag.sh) before any rule is written."
+  },
+  "soc": {
+    "value": null,
+    "verified": false,
+    "source": null
+  },
+  "bootloader": {
+    "value": null,
+    "verified": false,
+    "source": null
+  },
+  "kernel_base": {
+    "value": null,
+    "verified": false,
+    "source": null
+  },
+  "display": {
+    "value": null,
+    "verified": false,
+    "source": null
+  },
+  "touch": {
+    "value": null,
+    "verified": false,
+    "source": null
+  },
+  "frontlight": {
+    "value": null,
+    "verified": false,
+    "source": null
+  },
+  "battery": {
+    "value": null,
+    "verified": false,
+    "source": null
+  },
+  "wifi": {
+    "value": null,
+    "verified": false,
+    "source": null
+  },
+  "usb": {
+    "value": null,
+    "verified": false,
+    "source": null
+  },
+  "storage_layout": {
+    "value": null,
+    "verified": false,
+    "source": null
+  },
+  "suspend": {
+    "value": null,
+    "verified": false,
+    "source": null
+  },
+  "sysfs": {},
+  "slots": {},
+  "install_method": null,
+  "evidence": {
+    "boots_on_hardware": false,
+    "functional_tested": false,
+    "recovery_tested": false,
+    "recovery_independent": false
+  },
+  "blockers": [
+    "Device facts not collected",
+    "Bootloader signature policy unknown",
+    "No tested independent recovery path"
+  ],
+  "claimed_unverified": {
+    "soc": "NXP i.MX6 SoloLite (community documentation, not verified by this project)"
+  }
+}
