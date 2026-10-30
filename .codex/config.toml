@@ -1,0 +1,5 @@
+# Context Mode MCP requires executable 'context-mode' installed in the Codex runtime.
+# Codex loads project config only when project is trusted; hooks are not installed here.
+[mcp_servers.context-mode]
+command = "context-mode"
+env = { CONTEXT_MODE_PLATFORM = "codex" }
