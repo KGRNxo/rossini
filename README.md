@@ -40,4 +40,4 @@ Preview the shell without any build: `python3 -c "from rossini.shell.demo import
 The repository layout deliberately differs from the first sketch (`applications/`, `shell/`, ...): all Python code lives in
 one importable package so components share interfaces without path hacks. See docs/architecture/README.md.
 
-License: GPL-3.0-or-later for Rossini code, see [LICENSES/](LICENSES/) and docs/architecture/licenses.md for third-party components.
+License (see LEGAL.md): GPL-3.0-or-later for Rossini code, see [LICENSES/](LICENSES/) and docs/architecture/licenses.md for third-party components.

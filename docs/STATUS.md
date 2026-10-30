@@ -36,7 +36,7 @@ boot-chain tests and 1 ARMv7 (Buildroot) boot test, all passing (`tools/test-all
 emulation only. None of these can run on a Kindle.
 
 ## Open at the time of writing
-* `build/buildroot/configs/rossini_lab126_defconfig` (musl userland for the 3.0.35 kernels) is configured but its build was not finished, so the claim
+* `rossini_lab126_defconfig` (musl userland for 3.0.35) now selects mdev for /dev; its build is still unfinished and unverified.
   "musl runs on 3.0.35" is **not verified**; `tools/syscall_compat.py` (static syscall check against the kernel table) exists but was not run on that rootfs.
   The config also still needs `BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_MDEV=y` (3.0.35 has no devtmpfs).
 * Boot images: `rossini/installer/fit.py` builds an unsigned KT6 FIT (tested with mkimage and the real built kernel); no uImage/ATAG path for 3.0.35 yet.
