@@ -40,8 +40,11 @@ class FbdevBackend:
 
 
 class Display:
-    def __init__(self, size, backend, full_every=10, levels=16):
+    def __init__(self, size, backend, full_every=10, levels=16, base_rotation=0):
+        """base_rotation: fixed rotation of the physical panel relative to the UI's portrait orientation (e.g. 90 for a
+        landscape-native panel); the user's rotation setting is applied on top of it."""
         self.size, self.backend, self.full_every, self.levels = size, backend, full_every, levels
+        self.base_rotation = base_rotation
         self.shown = None
         self.partials = 0
         self.rotation = 0
@@ -54,9 +57,13 @@ class Display:
         self.force_full = True
 
     @property
+    def total_rotation(self):
+        return (self.rotation + self.base_rotation) % 360
+
+    @property
     def logical_size(self):
         w, h = self.size
-        return (h, w) if self.rotation in (90, 270) else (w, h)
+        return (h, w) if self.total_rotation in (90, 270) else (w, h)
 
     def request_full(self):
         self.force_full = True
@@ -65,7 +72,7 @@ class Display:
         """Show a logical-orientation frame. Returns the update mode used, or None if skipped."""
         if image.size != self.logical_size:
             raise ValueError(f"frame {image.size} != display {self.logical_size}")
-        panel = quantize(image.rotate(-self.rotation, expand=True) if self.rotation else image, self.levels)
+        panel = quantize(image.rotate(-self.total_rotation, expand=True) if self.total_rotation else image, self.levels)
         if self.shown is None or self.force_full or self.partials >= self.full_every:
             mode, bbox = "full", (0, 0) + panel.size
         else:

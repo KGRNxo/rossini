@@ -1,0 +1,42 @@
+{
+  "family": "amazon-rossini",
+  "status": "derived from Amazon's published GPL source release; NOT verified on any device",
+  "source": {
+    "page": "https://www.amazon.com/gp/help/customer/display.html?nodeId=200203720 (section 'Kindle (11th Generation - 2024 Release)')",
+    "tarball": "https://s3.amazonaws.com/kindledownloads/Kindle_src_5.19.6_4832540042.tar.gz",
+    "sha256": "e5acecaf45a2ec133e41aa49531e883ffb4bf79b57e1754ec09828395e354040",
+    "contents_used": ["gplrelease/linux-4.9.tar.gz", "gplrelease/uboot.tar.gz", "gplrelease/uboot_2009.08.tar.gz"],
+    "why_this_tarball": "Amazon lists it under 'Kindle (11th Generation - 2024 Release)'; the code names itself: PRODUCT_ROSSINI in drivers/misc/mediatek/hwtcon_v2, BOARD_TYPE_ROSSINI and u-boot_version_rossini.json in U-Boot"
+  },
+  "soc": {"value": "MediaTek MT8512 family ('MT8110 Bellatrix' platform), 32-bit ARM (Cortex-A7 per mt8512.dtsi PMU node), PSCI 0.2", "source": "kernel arch/arm/boot/dts/mediatek/mt8512.dtsi, CONFIG_MACH_MT8512, defconfig mt8110-bellatrix_defconfig"},
+  "kernel": {"version": "4.9 (Android common based, '-lab126')", "defconfig": "arch/arm/configs/mt8110-bellatrix_defconfig", "dtb": "mediatek/mt8110-cava.dtb (U-Boot maps BOARD_TYPE_ROSSINI to 'mt8110-cava')",
+             "compile_flag": "PRODUCT_ROSSINI selects Rossini-specific code in the e-ink driver"},
+  "identification": {
+    "mechanism": "U-Boot reads board_id from idme; characters 3..5 of board_id (the 'tattoo code') select the product. tattoo codes for Rossini: 3M5, 3GM",
+    "regex_on_board_id": "^.{3}(3M5|3GM).*$",
+    "source": "u-boot board/mediatek/mt8110_bellatrix/mt8110_bellatrix.c board_check_type() and tattoo_code_rossini[]",
+    "caveat": "from source only; confirm with `idme --board_id`/the device's board_id before trusting it"
+  },
+  "bootloader": {
+    "name": "U-Boot (2009.08-based tree plus 'UFBL' e-ink loader), eMMC boot",
+    "boot_flow": "`booteink` reads a FIT image from the eMMC partition named \"kernel\" (DEFAULT_BOOT_PARTITION) and runs bootm with config '#conf-<dtb>'",
+    "signature_policy": "On a locked production device only FIT configurations whose signature node has key-hint 'fireos-production' are verified; everything else is skipped, so a third-party image is not accepted. Secure boot fuse SBC_EN and production fuse AR_EN are read from eFuse (board_is_secure_cpu / board_is_production_device).",
+    "anti_rollback": "enforced for Rossini on locked production devices: FIT property 'anti-rollback-version-<type>' must not be lower than the device's version",
+    "fastboot": "present; getvar unlock_code returns a code derived from the hardware serial; an Amazon-issued unlock is required to leave the locked state; restricted commands are refused on locked hardware (is_restricted_command_on_locked_hw). The unlock verification code (amzn_unlock.h, amzn_fastboot_lockdown.h) is NOT part of the published source.",
+    "consequence": "A normally purchased KT6 will not boot a Rossini kernel unless Amazon unlocks it. This project does not provide and will not include any exploit or unlock bypass.",
+    "source": "u-boot cmd/eink/booteink.c, common/image-sig.c, common/eink/ufbl/*, board/mediatek/mt8110_bellatrix/mt8110_bellatrix.c"
+  },
+  "display": {
+    "controller": "MediaTek HWTCON v2 (hwtcon_v2 module, CONFIG_MTK_HWTCON_V2=m), /dev/fb0, 8 bpp grayscale, line_length = xres_virtual (aligned), several virtual frames",
+    "panel": "1448 x 1072 (U-Boot panel_1448_1072_info for BOARD_TYPE_ROSSINI); the fb rotation follows the eDP rotate setting from the controller, so portrait use needs a rotation",
+    "api": "include/linux/hwtcon_ioctl_cmd.h: mxcfb-compatible MXCFB_SEND_UPDATE etc. with a different update struct and waveform numbering (implemented in rossini/display/mxcfb.py variant 'hwtcon', ABI compile-checked against the header)",
+    "waveform_data": "loaded by the driver from firmware files (not in the source)"
+  },
+  "frontlight": {"chip": "SGM3756 (PWM channel 2, max_brightness 2047, MOS-mode GPIOs 19/20)", "driver": "drivers/video/backlight/sgm3756_bl.c, backlight class device named after the platform device (expected /sys/class/backlight/sgm3756 - inferred from dev_name(), confirm on device)"},
+  "pmic": {"main": "ROHM BD71828 (I2C 0x4B) with power-supply driver bd71827-power.c: supplies 'bd71827_ac' and 'bd71827_bat'", "epd_pmic": "FITI e-paper PMIC (compatible fiti,pmic)", "other": "Maxim MAX20342 (USB charger detection), TI TMP103 temperature sensor"},
+  "touch": {"candidates_in_dts": ["Parade TrueTouch (pt_i2c_adapter, input name 'pt_mt')", "Goodix GT6861"], "note": "which one is fitted depends on hardware revision"},
+  "wifi_bt": "MediaTek CONSYS combo (consys node in the dts)",
+  "usb": "MediaTek USB with extcon; gadget stack of kernel 4.9 supports configfs gadgets",
+  "storage": {"emmc": "mmc0 user area; U-Boot partition named 'kernel'; remaining partition table not in the source", "root_fs_support_in_defconfig": ["ext4 (with encryption support)", "squashfs (single decompressor)"]},
+  "userland_constraint": "kernel 4.9: glibc >= 2.39 (ABI tag 3.2.0) is fine; no musl requirement"
+}

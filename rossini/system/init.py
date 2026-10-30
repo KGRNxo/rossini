@@ -35,7 +35,8 @@ def sh(*argv):
 
 
 class Init:
-    def __init__(self, data="/data", boot="/boot", slot=None, version="?", pid1=True, powerctl=None, py=PY):
+    def __init__(self, data="/data", boot="/boot", slot=None, version="?", pid1=True, powerctl=None, py=PY, board="qemu-x86_64"):
+        self.board = board
         self.data, self.boot, self.slot, self.version, self.pid1 = data, boot, slot, version, pid1
         self.py = py
         self.powerctl = powerctl or self._powerctl
@@ -57,8 +58,10 @@ class Init:
         py, data = self.py, self.data
         return [Service("library-index", [py, "-m", "rossini.library.indexer", data], oneshot=True),
                 Service("connectd", [py, "-m", "rossini.connect.daemon", data, "8080"], after=["library-index"]),
+                Service("shell", [py, "-m", "rossini.shell.main", data, self.board], after=["library-index"]),
                 Service("selftest", [py, "-m", "rossini.system.selftest", data, "/run/rossini-selftest"],
-                        oneshot=True, after=["connectd"])]
+                        oneshot=True, after=["connectd", "shell"],
+                        env={"ROSSINI_SERVICES": "1", **({"ROSSINI_PID1": "1"} if os.getpid() == 1 else {})})]
 
     def bring_up(self):
         """Returns True if the self-test passed."""
@@ -93,7 +96,7 @@ class Init:
             pkg = os.path.join(self.data, "update", "rossini.pkg")
             if os.path.exists(pkg) and not ctl.trial:
                 log("update package found, installing")
-                rc = sh(self.py, "-m", "rossini.updater.cli", "install", pkg, "--board", "qemu-x86_64",
+                rc = sh(self.py, "-m", "rossini.updater.cli", "install", pkg, "--board", self.board,
                         "--pubkey", "/etc/rossini/update.pub", "--bootctl", self.bootctl_path)
                 log(f"update install rc={rc}")
                 os.rename(pkg, pkg + ".done")
@@ -107,7 +110,8 @@ class Init:
 def main():
     opts = cmdline()
     ver = open("/etc/rossini/version").read().strip() if os.path.exists("/etc/rossini/version") else "dev"
-    Init(slot=os.environ.get("ROSSINI_SLOT") or opts.get("rossini.slot"), version=ver).run()
+    board = open("/etc/rossini/board").read().strip() if os.path.exists("/etc/rossini/board") else "qemu-x86_64"
+    Init(slot=os.environ.get("ROSSINI_SLOT") or opts.get("rossini.slot"), version=ver, board=board).run()
 
 
 if __name__ == "__main__":

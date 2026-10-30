@@ -9,9 +9,7 @@ import os
 import tarfile
 import time
 
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
-from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
+from . import ed25519
 
 PRODUCT = "rossini-os"
 MAX_MANIFEST = 1 << 20
@@ -23,6 +21,9 @@ class PackageError(Exception):
 
 
 def generate_keypair():
+    """Host-side only (needs the cryptography package)."""
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
     k = Ed25519PrivateKey.generate()
     return (k.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption()),
             k.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw))
@@ -41,6 +42,7 @@ def build(out_path, version, rollback_index, boards, payloads, private_key, crea
     manifest = {"format": 1, "product": PRODUCT, "version": version, "rollback_index": rollback_index,
                 "boards": list(boards), "created": int(time.time() if created is None else created), "payloads": entries}
     raw = json.dumps(manifest, sort_keys=True, indent=1).encode()
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey  # host-side only
     sig = Ed25519PrivateKey.from_private_bytes(private_key).sign(raw)
     with tarfile.open(out_path, "w", format=tarfile.USTAR_FORMAT) as t:
         for name, data in (("manifest.json", raw), ("manifest.sig", sig)):
@@ -82,13 +84,7 @@ def _verify(pkg_path, trusted_keys, board, current_rollback_index, staging_dir):
             raise PackageError("Manifest oder Signatur hat ungültige Größe")
         raw = t.extractfile(members["manifest.json"]).read()
         sig = t.extractfile(members["manifest.sig"]).read()
-        for k in trusted_keys:
-            try:
-                Ed25519PublicKey.from_public_bytes(k).verify(sig, raw)
-                break
-            except InvalidSignature:
-                continue
-        else:
+        if not any(ed25519.verify(k, raw, sig) for k in trusted_keys):
             raise PackageError("Signatur ungültig: das Paket stammt nicht von einem vertrauten Schlüssel")
         try:
             man = json.loads(raw)

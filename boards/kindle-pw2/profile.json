@@ -1,69 +1,72 @@
 {
   "id": "kindle-pw2",
-  "name": "Amazon Kindle Paperwhite 2 (2013)",
+  "name": "Amazon Kindle Paperwhite (6th generation, PW2)",
   "kind": "hardware",
   "release_status": "research",
-  "arch": null,
+  "arch": "armv7",
+  "family": "lab126-wario",
   "identification": {
     "rules": [],
-    "note": "No identification rule exists: model, SoC and bootloader must be confirmed from real device data (tools/hwdiag.sh) before any rule is written."
+    "note": "No rule yet: the board-id strings of /proc/board_id are known as codenames only (boards/_families/lab126-wario.json); the codename of THIS product must be read from a real device before a rule is written."
   },
   "soc": {
-    "value": null,
+    "value": "NXP/Freescale i.MX 6SoloLite (SOC_IMX6SL, ARM Cortex-A9 single core, ARMv7)",
     "verified": false,
-    "source": null
+    "source": "Amazon kernel source (README lists this product for imx60_wario_defconfig)"
+  },
+  "kernel_base": {
+    "value": "Linux 3.0.35-lab126, imx60_wario_defconfig",
+    "verified": false,
+    "source": "https://github.com/katadelos/linux-3.0.35-lab126@7ac2585f"
   },
   "bootloader": {
     "value": null,
     "verified": false,
-    "source": null
-  },
-  "kernel_base": {
-    "value": null,
-    "verified": false,
-    "source": null
+    "source": null,
+    "note": "boot flow, signature policy and U-Boot environment are not in the kernel source"
   },
   "display": {
     "value": null,
     "verified": false,
-    "source": null
+    "backend": "mxcfb:/dev/fb0",
+    "note": "panel differs by hardware revision; read /proc/panel_id and fb0 geometry on the device"
   },
   "touch": {
-    "value": null,
-    "verified": false,
-    "source": null
+    "value": "zforce2 or cyttsp4 (see family file)",
+    "verified": false
   },
   "frontlight": {
-    "value": null,
-    "verified": false,
-    "source": null
+    "value": "MAX77696 backlight driver",
+    "verified": false
   },
   "battery": {
-    "value": null,
-    "verified": false,
-    "source": null
+    "value": "MAX77696 gauge + charger",
+    "verified": false
   },
   "wifi": {
-    "value": null,
-    "verified": false,
-    "source": null
+    "value": "ath6kl/AR6003 (base) or bcmdhd 4343W (woody)",
+    "verified": false
   },
   "usb": {
-    "value": null,
+    "value": "ARC OTG gadget; legacy g_file_storage, no configfs",
     "verified": false,
-    "source": null
+    "mode": "legacy-gadget"
   },
   "storage_layout": {
     "value": null,
     "verified": false,
-    "source": null
+    "note": "eMMC partition table is not in the kernel source"
   },
   "suspend": {
-    "value": null,
-    "verified": false,
-    "source": null
+    "value": "mx6 suspend code present in kernel",
+    "verified": false
   },
-  "sysfs": {},
+  "sysfs": {
+    "battery_capacity": "/sys/class/power_supply/max77696-battery/capacity",
+    "battery_status": "/sys/class/power_supply/max77696-battery/status",
+    "frontlight_brightness": "/sys/class/backlight/max77696-bl/brightness",
+    "frontlight_max": "/sys/class/backlight/max77696-bl/max_brightness"
+  },
   "slots": {},
   "install_method": null,
   "evidence": {
@@ -73,11 +76,10 @@
     "recovery_independent": false
   },
   "blockers": [
-    "Device facts not collected",
     "Bootloader signature policy unknown",
-    "No tested independent recovery path"
-  ],
-  "claimed_unverified": {
-    "soc": "NXP i.MX6 SoloLite (community documentation, not verified by this project)"
-  }
+    "No tested independent recovery path",
+    "Board id of this product not read from a device",
+    "eMMC layout unknown",
+    "Boot ATAGs (serial16, revision16, mac, bootmode) must be provided by the boot chain"
+  ]
 }

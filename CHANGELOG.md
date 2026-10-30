@@ -8,3 +8,14 @@ Rossini Shell, settings store, power policy, sysfs HAL, OPDS client, WLAN transf
 with A/B trial boot and rollback, installer gate, recovery tools, SDK manifest validation, QEMU x86_64 images and boot tests.
 
 Not added: any Kindle kernel, bootloader, display driver or device image. See docs/STATUS.md.
+
+### Added after the first commit
+Readers for PDF (zoom, crop, reflow), MOBI/AZW3, DjVu, CBR, RTF, HTML; hyphenation; images in epub/fb2/mobi; night mode; configurable
+tap zones; selection by long press with dictionary (StarDict), highlights and notes; WLAN via wpa_supplicant; WebDAV sync; USB mass-storage
+export; suspend call; collections editor; reading statistics screen; shell service main loop; pure-Python Ed25519 verification;
+Buildroot ARMv7 build with boot test.
+
+### Amazon kernel sources
+Analysis of Amazon's published Kindle kernels (Lab126 3.0.35 for PW2/PW3/KV/KT2/Oasis, 4.9 for the 2024 Kindle "Rossini"); build recipes and patches
+for GCC 13; MXCFB/HWTCON E-Ink backend with ABI checks; `LegacyGadgetExport` for kernels without configfs gadgets; board profiles for six Kindle
+models; installer takes `--board-id`; `tools/hwdiag.sh` reads idme/board ids. Finding: the KT6 bootloader only accepts Amazon-signed images on locked devices.

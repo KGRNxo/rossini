@@ -1,0 +1,128 @@
+diff --git a/arch/arm/boot/compressed/big-endian.S b/arch/arm/boot/compressed/big-endian.S
+index 25ab26f1..f22428e2 100644
+--- a/arch/arm/boot/compressed/big-endian.S
++++ b/arch/arm/boot/compressed/big-endian.S
+@@ -5,7 +5,7 @@
+  *  Author: Nicolas Pitre
+  */
+ 
+-	.section ".start", #alloc, #execinstr
++	.section ".start", "ax"
+ 
+ 	mrc	p15, 0, r0, c1, c0, 0	@ read control reg
+ 	orr	r0, r0, #(1 << 7)	@ enable big endian mode
+diff --git a/arch/arm/boot/compressed/head.S b/arch/arm/boot/compressed/head.S
+index 940b2017..61176ecf 100644
+--- a/arch/arm/boot/compressed/head.S
++++ b/arch/arm/boot/compressed/head.S
+@@ -112,7 +112,7 @@
+ #endif
+ 		.endm
+ 
+-		.section ".start", #alloc, #execinstr
++		.section ".start", "ax"
+ /*
+  * sort out different calling conventions
+  */
+@@ -356,7 +356,7 @@ not_relocated:	mov	r0, #0
+ 		mov	pc, r4			@ call kernel
+ 
+ 		.align	2
+-		.type	LC0, #object
++		.type	LC0, %object
+ LC0:		.word	LC0			@ r1
+ 		.word	__bss_start		@ r2
+ 		.word	_end			@ r3
+diff --git a/arch/arm/boot/compressed/piggy.gzip.S b/arch/arm/boot/compressed/piggy.gzip.S
+index a68adf91..7de824f7 100644
+--- a/arch/arm/boot/compressed/piggy.gzip.S
++++ b/arch/arm/boot/compressed/piggy.gzip.S
+@@ -1,4 +1,4 @@
+-	.section .piggydata,#alloc
++	.section .piggydata,"a"
+ 	.globl	input_data
+ input_data:
+ 	.incbin	"arch/arm/boot/compressed/piggy.gzip"
+diff --git a/arch/arm/boot/compressed/piggy.lzma.S b/arch/arm/boot/compressed/piggy.lzma.S
+index d7e69cff..e1eb3797 100644
+--- a/arch/arm/boot/compressed/piggy.lzma.S
++++ b/arch/arm/boot/compressed/piggy.lzma.S
+@@ -1,4 +1,4 @@
+-	.section .piggydata,#alloc
++	.section .piggydata,"a"
+ 	.globl	input_data
+ input_data:
+ 	.incbin	"arch/arm/boot/compressed/piggy.lzma"
+diff --git a/arch/arm/boot/compressed/piggy.lzo.S b/arch/arm/boot/compressed/piggy.lzo.S
+index a425ad95..4401d17e 100644
+--- a/arch/arm/boot/compressed/piggy.lzo.S
++++ b/arch/arm/boot/compressed/piggy.lzo.S
+@@ -1,4 +1,4 @@
+-	.section .piggydata,#alloc
++	.section .piggydata,"a"
+ 	.globl	input_data
+ input_data:
+ 	.incbin	"arch/arm/boot/compressed/piggy.lzo"
+diff --git a/arch/arm/mm/proc-v7.S b/arch/arm/mm/proc-v7.S
+index 21cd2983..e379779c 100644
+--- a/arch/arm/mm/proc-v7.S
++++ b/arch/arm/mm/proc-v7.S
+@@ -406,7 +406,7 @@ ENDPROC(__v7_setup)
+ 	 * rxxx rrxx xxx0 0101 xxxx xxxx x111 xxxx < forced
+ 	 *    1    0 110       0011 1100 .111 1101 < we want
+ 	 */
+-	.type	v7_crval, #object
++	.type	v7_crval, %object
+ v7_crval:
+ 	crval	clear=0x0120c302, mmuset=0x10c03c7d, ucset=0x00c01c7c
+ 
+@@ -415,7 +415,7 @@ __v7_setup_stack:
+ 
+ 	__INITDATA
+ 
+-	.type	v7_processor_functions, #object
++	.type	v7_processor_functions, %object
+ ENTRY(v7_processor_functions)
+ 	.word	v7_early_abort
+ 	.word	v7_pabort
+@@ -433,20 +433,20 @@ ENTRY(v7_processor_functions)
+ 
+ 	.section ".rodata"
+ 
+-	.type	cpu_arch_name, #object
++	.type	cpu_arch_name, %object
+ cpu_arch_name:
+ 	.asciz	"armv7"
+ 	.size	cpu_arch_name, . - cpu_arch_name
+ 
+-	.type	cpu_elf_name, #object
++	.type	cpu_elf_name, %object
+ cpu_elf_name:
+ 	.asciz	"v7"
+ 	.size	cpu_elf_name, . - cpu_elf_name
+ 	.align
+ 
+-	.section ".proc.info.init", #alloc, #execinstr
++	.section ".proc.info.init", "a"
+ 
+-	.type   __v7_ca9mp_proc_info, #object
++	.type   __v7_ca9mp_proc_info, %object
+ __v7_ca9mp_proc_info:
+ 	.long	0x410fc090		@ Required ID value
+ 	.long	0xff0ffff0		@ Mask for ID
+@@ -478,7 +478,7 @@ __v7_ca9mp_proc_info:
+ 	/*
+ 	 * Match any ARMv7 processor core.
+ 	 */
+-	.type	__v7_proc_info, #object
++	.type	__v7_proc_info, %object
+ __v7_proc_info:
+ 	.long	0x000f0000		@ Required ID value
+ 	.long	0x000f0000		@ Mask for ID
+diff --git a/include/linux/compiler-gcc13.h b/include/linux/compiler-gcc13.h
+new file mode 100644
+index 00000000..9ff99f0d
+--- /dev/null
++++ b/include/linux/compiler-gcc13.h
+@@ -0,0 +1 @@
++#include <linux/compiler-gccN.h>

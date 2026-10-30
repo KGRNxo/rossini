@@ -72,6 +72,14 @@ class Library:
             self.db.execute("PRAGMA journal_mode=WAL")
             self.db.execute("PRAGMA synchronous=NORMAL")
         self.db.executescript(SCHEMA)
+        self._migrate()
+
+    def _migrate(self):
+        """Add columns introduced after a database was created."""
+        cols = {r[1] for r in self.db.execute("PRAGMA table_info(progress)")}
+        if "kind" not in cols:  # 'text' = char offset, 'page' = page index
+            self.db.execute("ALTER TABLE progress ADD COLUMN kind TEXT")
+            self.db.commit()
 
     def close(self):
         self.db.commit()
@@ -275,14 +283,14 @@ class Library:
 
     # --- progress and annotations ------------------------------------------
     def get_progress(self, book_id):
-        r = self.db.execute("SELECT position,percent,updated FROM progress WHERE book_id=?", (book_id,)).fetchone()
+        r = self.db.execute("SELECT position,percent,updated,kind FROM progress WHERE book_id=?", (book_id,)).fetchone()
         return dict(r) if r else None
 
-    def set_progress(self, book_id, position, percent, when=None):
+    def set_progress(self, book_id, position, percent, when=None, kind=None):
         when = time.time() if when is None else when
-        self.db.execute("INSERT INTO progress VALUES(?,?,?,?) ON CONFLICT(book_id) DO UPDATE SET "
-                        "position=excluded.position, percent=excluded.percent, updated=excluded.updated",
-                        (book_id, position, percent, when))
+        self.db.execute("INSERT INTO progress(book_id,position,percent,updated,kind) VALUES(?,?,?,?,?) ON CONFLICT(book_id) DO UPDATE SET "
+                        "position=excluded.position, percent=excluded.percent, updated=excluded.updated, kind=excluded.kind",
+                        (book_id, position, percent, when, kind))
         status = "finished" if percent >= 0.99 else "reading"
         self.db.execute("UPDATE books SET status=? WHERE id=?", (status, book_id))
         self.db.commit()
@@ -308,6 +316,15 @@ class Library:
         self.db.execute("INSERT INTO reading_log VALUES(?,?,?,?) ON CONFLICT(day,book_id) DO UPDATE SET "
                         "seconds=seconds+excluded.seconds, pages=pages+excluded.pages", (day, book_id, seconds, pages))
         self.db.commit()
+
+    def book_collections(self, book_id):
+        return [r[0] for r in self.db.execute("SELECT c.name FROM collections c JOIN collection_books cb ON cb.collection_id=c.id"
+                                              " WHERE cb.book_id=? ORDER BY lower(c.name)", (book_id,))]
+
+    def stats_by_month(self, months=6):
+        return [dict(r) for r in self.db.execute(
+            "SELECT substr(day,1,7) AS month, sum(seconds) AS seconds, sum(pages) AS pages, count(DISTINCT book_id) AS books"
+            " FROM reading_log GROUP BY month ORDER BY month DESC LIMIT ?", (months,))]
 
     def stats(self):
         r = self.db.execute("SELECT coalesce(sum(seconds),0) s, coalesce(sum(pages),0) p FROM reading_log").fetchone()

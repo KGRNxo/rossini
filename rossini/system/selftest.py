@@ -123,6 +123,28 @@ def check_connectd(ctx):
     return "connectd accepts connections on :8080"
 
 
+def check_shell_service(ctx):
+    p = os.path.join(ctx["data"], "screens", "live.png")
+    for _ in range(120):
+        if os.path.exists(p):
+            from PIL import Image
+            with Image.open(p) as im:
+                lo, hi = im.getextrema()
+                assert lo < hi, "blank frame"
+            return "shell service presented its first frame"
+        time.sleep(0.5)
+    raise AssertionError("shell service did not present a frame within 60 s")
+
+
+def check_suspend(ctx):
+    from rossini.system import suspend
+    if "freeze" not in suspend.states() or not os.path.exists("/sys/class/rtc/rtc0/wakealarm"):
+        return "SKIP: no s2idle/RTC wake alarm on this platform"
+    state, slept = suspend.suspend(prefer=("freeze",), wake_after=3)
+    assert slept >= 1.0, f"woke after {slept:.2f}s, alarm did not hold"
+    return f"suspend ({state}) and RTC wake-up after {slept:.1f}s"
+
+
 CHECKS = [("marker", check_marker), ("data-fs", check_data_fs), ("library+reader", check_library_reader),
           ("shell+display", check_shell), ("transfer", check_transfer), ("power", check_power)]
 
@@ -149,7 +171,12 @@ def main(argv=None):
     shutil.rmtree(work, ignore_errors=True)  # every run starts clean
     os.makedirs(work, exist_ok=True)
     ver = open("/etc/rossini/version").read().strip() if os.path.exists("/etc/rossini/version") else "dev"
-    ok, res = run(data, work, ver, "qemu-x86_64", extra=[("connectd", check_connectd)] if os.path.exists("/run/rossini") else [])
+    extra = [("connectd", check_connectd), ("shell-service", check_shell_service)] if os.environ.get("ROSSINI_SERVICES") else []
+    # Opt-in (kernel cmdline rossini.test=suspend): in QEMU the guest enters s2idle but the emulated RTC alarm did not
+    # wake it in our experiments, so this check can hang there. It exists for real hardware bring-up.
+    if os.environ.get("ROSSINI_PID1") and "rossini.test=suspend" in open("/proc/cmdline").read():
+        extra.append(("suspend-resume", check_suspend))
+    ok, res = run(data, work, ver, "qemu-x86_64", extra=extra)
     with open(os.path.join(work, "selftest.json"), "w") as f:
         json.dump({"ok": ok, "version": ver, "results": res}, f, indent=1)
     return 0 if ok else 1

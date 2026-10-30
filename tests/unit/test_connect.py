@@ -149,5 +149,79 @@ class SyncTest(unittest.TestCase):
             la.close()
 
 
+class Dav(BaseHTTPRequestHandler):
+    """Minimal WebDAV file endpoint with ETag preconditions, like Nextcloud for a single file."""
+    store = {}
+    puts = 0
+
+    def log_message(self, *a):
+        pass
+
+    def _auth(self):
+        import base64
+        if self.headers.get("Authorization") != "Basic " + base64.b64encode(b"kai:pw").decode():
+            self.send_response(401); self.end_headers(); return False
+        return True
+
+    def do_GET(self):
+        if not self._auth():
+            return
+        if self.path not in self.store:
+            self.send_response(404); self.end_headers(); return
+        body, tag = self.store[self.path]
+        self.send_response(200); self.send_header("ETag", tag); self.send_header("Content-Length", str(len(body))); self.end_headers()
+        self.wfile.write(body)
+
+    def do_PUT(self):
+        if not self._auth():
+            return
+        body = self.rfile.read(int(self.headers["Content-Length"]))
+        cur = self.store.get(self.path)
+        if (self.headers.get("If-None-Match") == "*" and cur) or (self.headers.get("If-Match") and (not cur or cur[1] != self.headers["If-Match"])):
+            self.send_response(412); self.end_headers(); return
+        Dav.puts += 1
+        self.store[self.path] = (body, f'"{Dav.puts}"')
+        self.send_response(201); self.end_headers()
+
+
+class WebDavTest(unittest.TestCase):
+    def test_sync_with_etags_auth_and_conflict_retry(self):
+        srv = HTTPServer(("127.0.0.1", 0), Dav)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        self.addCleanup(lambda: (srv.shutdown(), srv.server_close()))
+        url = f"http://127.0.0.1:{srv.server_address[1]}/dav/rossini"
+        with tempfile.TemporaryDirectory() as d:
+            mk = SyncTest.make
+            la, ia = mk(self, d, "a"); lb, ib = mk(self, d, "b")
+            la.set_progress(ia, 100, 0.1, when=10)
+            sync.sync_webdav(la, url, "kai", "pw")
+            lb.set_progress(ib, 500, 0.5, when=20)
+            # another device writes between our GET and PUT: the first PUT must fail with 412 and be retried
+            real = urllib.request.urlopen
+            raced = []
+            def opener(req):
+                if req.get_method() == "PUT" and not raced:
+                    raced.append(1)
+                    Dav.store["/dav/rossini/" + sync.FILE] = (Dav.store["/dav/rossini/" + sync.FILE][0], '"other"')
+                return real(req, timeout=10)
+            sync.sync_webdav(lb, url, "kai", "pw", opener=opener)
+            sync.sync_webdav(la, url, "kai", "pw")
+            self.assertEqual(la.get_progress(ia)["position"], 500)
+            with self.assertRaises(urllib.error.HTTPError):
+                sync.sync_webdav(la, url, "kai", "falsch")
+            la.close(); lb.close()
+
+    def test_credentials_file_is_private(self):
+        from rossini.connect.credentials import Credentials
+        with tempfile.TemporaryDirectory() as d:
+            c = Credentials(d + "/cred.json")
+            self.assertEqual(c.get("webdav"), (None, None))
+            c.set("webdav", "kai", "pw")
+            self.assertEqual(c.get("webdav"), ("kai", "pw"))
+            self.assertEqual(os.stat(d + "/cred.json").st_mode & 0o777, 0o600)
+            c.delete("webdav")
+            self.assertEqual(c.get("webdav"), (None, None))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -38,10 +38,12 @@ class ReaderTest(unittest.TestCase):
         self.assertEqual(formats.open_document(self.d + "/b.fb2").toc[0][0], "Anfang")
         self.assertIn("Mond", formats.open_document(self.d + "/d.txt").text)
 
-    def test_unsupported_formats_are_refused_not_faked(self):
-        for ext in ("pdf", "mobi", "azw3", "djvu"):
-            with self.assertRaises(formats.Unsupported):
-                formats.open_document(f"/x/book.{ext}")
+    def test_unknown_and_broken_files_are_refused(self):
+        with self.assertRaises(formats.Unsupported):
+            formats.open_document("/x/book.lit")
+        F._w(self.d + "/junk.mobi", "not a mobi")
+        with self.assertRaises(formats.Unsupported):
+            formats.open_document(self.d + "/junk.mobi")
 
     def test_pages_progress_and_restore(self):
         s = ReaderSession(self.lib, self.id("Hafenlicht"), SIZE)
@@ -69,8 +71,9 @@ class ReaderTest(unittest.TestCase):
         for a, b in zip(pages, pages[1:]):
             self.assertLess(a.start, b.start)
         self.assertEqual(pages[0].start, 0)
-        text = " ".join(l.text for p in pages for l in p.lines).split()
-        self.assertEqual(text, s.doc.text.split())
+        joined = "".join(l.text + ("" if l.hyphen else " ") for p in pages for l in p.lines)
+        self.assertEqual(joined.split(), s.doc.text.split())
+        self.assertTrue(any(l.hyphen for p in pages for l in p.lines))  # German hyphenation is active
 
     def test_search_bookmark_highlight_render(self):
         s = ReaderSession(self.lib, self.id("Hafenlicht"), SIZE)

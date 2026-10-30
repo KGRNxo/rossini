@@ -120,3 +120,27 @@ class UpdaterTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Ed25519Test(unittest.TestCase):
+    def test_rfc8032_vector_and_cross_check(self):
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from rossini.updater import ed25519
+        # RFC 8032 7.1 TEST 2
+        pub = bytes.fromhex("3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c")
+        sig = bytes.fromhex("92a009a9f0d4cab8720e820b5f642540a2b27b5416503f8fb3762223ebdb69da"
+                            "085ac1e43e15996e458f3613d0f11d8c387b2eaeb4302aeeb00d291612bb0c00")
+        self.assertTrue(ed25519.verify(pub, b"\x72", sig))
+        self.assertFalse(ed25519.verify(pub, b"\x73", sig))
+        rnd = random.Random(1)
+        for _ in range(5):
+            k = Ed25519PrivateKey.generate()
+            from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+            pk = k.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+            msg = rnd.randbytes(rnd.randint(0, 300))
+            s = k.sign(msg)
+            self.assertTrue(ed25519.verify(pk, msg, s))
+            bad = bytearray(s); bad[rnd.randrange(64)] ^= 1 << rnd.randrange(8)
+            self.assertFalse(ed25519.verify(pk, msg, bytes(bad)))
+        self.assertFalse(ed25519.verify(pk, msg, s[:63]))
+        self.assertFalse(ed25519.verify(b"\xff" * 32, msg, s))

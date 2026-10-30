@@ -1,5 +1,6 @@
 """Rossini Shell: navigation, screens and dialogs for the E-Ink UI. The App consumes gestures and
 produces frames; presentation (partial/full refresh) is the Display's job."""
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Callable
@@ -28,6 +29,8 @@ class Ctx:
     opds_download: Callable = None    # (entry, dest_dir) -> path
     actions: dict = field(default_factory=dict)   # 'poweroff', 'reboot'
     update_status: Callable = None    # () -> str
+    wifi: object = None               # system.networking.Wifi or None
+    usb: object = None                # system.usb.UsbExport or None
 
 
 class App:
@@ -87,6 +90,12 @@ class App:
 
     def toast(self, text):
         self.ask(text, ("OK", lambda: None))
+
+    def dictionaries(self):
+        if not hasattr(self, "_dicts"):
+            from ..reader.dictionary import Dictionaries
+            self._dicts = Dictionaries(os.path.join(self.ctx.data_dir, "dictionaries"))
+        return self._dicts
 
     # --- reader ---------------------------------------------------------------
     def open_book(self, book_id, file_format=None):
@@ -193,8 +202,9 @@ class App:
                 if rect[0] <= g.x < rect[2] and rect[1] <= g.y < rect[3]:
                     fn()
                     return True
-            if g.kind == "tap" and not self.dialog:
-                return bool(self.stack[-1].tap_bg(g, self))
+            if not self.dialog:
+                screen = self.stack[-1]
+                return bool(screen.tap_bg(g, self) if g.kind == "tap" else screen.long_press(g, self))
         return False
 
     def shutdown(self):

@@ -1,5 +1,6 @@
-"""Metadata extraction for the formats the reader can actually open: epub, fb2, cbz, txt.
-All input is untrusted: size limits, no path traversal, no entity expansion."""
+"""Metadata extraction for every format the reader can open. Formats whose decoder is missing on this system
+(PyMuPDF for PDF, djvulibre for DjVu) are not offered at all. All input is untrusted: size limits, no path
+traversal, no entity expansion; external decoders run as separate processes."""
 import base64
 import io
 import os
@@ -10,7 +11,15 @@ from dataclasses import dataclass, field
 
 from ..common import local, safe_xml
 
-FORMATS = {".epub": "epub", ".fb2": "fb2", ".cbz": "cbz", ".txt": "txt"}
+import importlib.util
+import shutil
+
+FORMATS = {".epub": "epub", ".fb2": "fb2", ".cbz": "cbz", ".cbr": "cbr", ".txt": "txt", ".mobi": "mobi",
+           ".azw3": "azw3", ".azw": "azw", ".prc": "mobi", ".rtf": "rtf", ".html": "html", ".htm": "html", ".xhtml": "html"}
+if importlib.util.find_spec("pymupdf") or importlib.util.find_spec("fitz"):
+    FORMATS[".pdf"] = "pdf"
+if shutil.which("ddjvu") and shutil.which("djvused"):
+    FORMATS[".djvu"] = "djvu"
 MAX_ENTRY = 32 * 1024 * 1024
 IMG_EXT = (".jpg", ".jpeg", ".png", ".gif", ".webp")
 FONT_OBFUSCATION = ("http://www.idpf.org/2008/embedding", "http://ns.adobe.com/pdf/enc#RC")
@@ -190,7 +199,48 @@ def _txt(path):
     return from_filename(path)
 
 
-EXTRACTORS = {"epub": _epub, "fb2": _fb2, "cbz": _cbz, "txt": _txt}
+def _paged(path):
+    """pdf, djvu, cbr: open with the reader backend; cover = first page."""
+    from ..reader import paged
+    ext = os.path.splitext(path)[1].lower()
+    doc = {".pdf": paged.PdfDoc, ".djvu": paged.DjvuDoc, ".cbr": paged.ComicDoc}[ext](path)
+    m = Meta(title=doc.title or from_filename(path).title, author=getattr(doc, "author", "") or from_filename(path).author)
+    m.extra["pages"] = doc.page_count
+    try:
+        out = io.BytesIO()
+        doc.raw_page(0, 640).save(out, "PNG")
+        m.cover = thumbnail(out.getvalue())
+    except Exception:
+        pass
+    return m
+
+
+def _mobi(path):
+    from ..reader.mobi import Mobi
+    mb = Mobi(path)
+    m = Meta(title=mb.title or from_filename(path).title, author=mb.author)
+    c = mb.cover()
+    if c:
+        m.cover = thumbnail(c)
+    return m
+
+
+def _text_title(path):
+    with open(path, "rb") as f:
+        head = f.read(65536)
+    if os.path.splitext(path)[1].lower() == ".rtf":
+        if not head.lstrip().startswith(b"{\\rtf"):
+            raise Broken("not an RTF file")
+        return from_filename(path)
+    t = re.search(rb"<title[^>]*>(.*?)</title>", head, re.I | re.S)
+    m = from_filename(path)
+    if t and t.group(1).strip():
+        m.title = " ".join(t.group(1).decode("utf-8", "replace").split())
+    return m
+
+
+EXTRACTORS = {"epub": _epub, "fb2": _fb2, "cbz": _cbz, "txt": _txt, "pdf": _paged, "djvu": _paged, "cbr": _paged,
+              "mobi": _mobi, "azw3": _mobi, "azw": _mobi, "rtf": _text_title, "html": _text_title}
 
 
 def extract(path):
