@@ -41,6 +41,23 @@ class GateTest(unittest.TestCase):
         self.assertFalse(gate.evaluate(facts, prof, True, "x", False).allowed)
         self.assertFalse(gate.evaluate({"version_txt": "Kindle 4.1"}, prof, True, "x", True).allowed)
 
+    def test_kt6_candidate_rule_matches_only_rossini_tattoo_codes(self):
+        import re
+        prof = gate.load_profiles()["kindle-kt6"]
+        rule = prof["identification"]["candidate_rule_from_source"]
+        self.assertEqual(prof["identification"]["rules"], [])  # candidate only, not active
+        pat = re.compile(rule["regex"])
+        for ok in ("B0F3M5000000", "B0F3GM123456"):
+            self.assertTrue(pat.match(ok), ok)
+        for bad in ("B0F2R5000000", "B0F3M", "B0F4M5000000"):  # cava / other tattoo codes or too short
+            self.assertFalse(pat.match(bad), bad)
+        # even when the rule is activated, nothing else in the profile allows an install
+        act = {"kindle-kt6": {**prof, "identification": {"rules": [{"fact": "board_id", "regex": rule["regex"]}]}}}
+        d = gate.evaluate({"board_id": "B0F3M5000000"}, act, True, "kindle-kt6", True)
+        self.assertEqual(d.board, "kindle-kt6")
+        self.assertFalse(d.allowed)
+        self.assertGreaterEqual(len(d.reasons), 5)
+
     def test_cli_refuses_unknown_device_and_writes_report(self):
         with tempfile.TemporaryDirectory() as d:
             os.makedirs(f"{d}/dev/system"); os.makedirs(f"{d}/dev/documents")

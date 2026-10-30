@@ -61,6 +61,10 @@ def backend_for(profile, data):
     spec = profile.get("display", {}).get("backend", "png")
     if spec.startswith("fbdev:"):
         return FbdevBackend(spec.split(":", 1)[1])
+    if spec.startswith(("mxcfb:", "hwtcon:")):
+        from ..display.mxcfb import MxcfbBackend
+        kind, dev = spec.split(":", 1)
+        return MxcfbBackend(dev, variant="hwtcon" if kind == "hwtcon" else "imx")
     os.makedirs(os.path.join(data, "screens"), exist_ok=True)
     return PngBackend(os.path.join(data, "screens", "live.png"))
 
@@ -76,7 +80,9 @@ def run(data, board, poweroff=None, max_loops=None, inputs=None):
     ctx = Ctx(lib, st, hal, power, data, [os.path.join(data, "books")], time.time,
               open("/etc/rossini/version").read().strip() if os.path.exists("/etc/rossini/version") else "dev", board,
               actions={"poweroff": poweroff or (lambda: os.system("poweroff")), "reboot": lambda: os.system("reboot")})
-    display = Display(size, backend_for(profile, data))
+    backend = backend_for(profile, data)
+    size = (backend.width, backend.height) if hasattr(backend, "width") else size  # framebuffer reports the real geometry
+    display = Display(size, backend, base_rotation=geo.get("base_rotation", 0))
     app = App(ctx, display)
     display.present(app.render())
     print("shell: first frame presented", flush=True)

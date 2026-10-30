@@ -117,5 +117,32 @@ class UsbTest(unittest.TestCase):
                 u.start()
 
 
+class LegacyUsbTest(unittest.TestCase):
+    def test_modprobe_cycle_and_failure_restores_mount(self):
+        from rossini.system.usb import LegacyGadgetExport
+        with tempfile.TemporaryDirectory() as d:
+            mounts = f"{d}/m"
+            open(mounts, "w").write("/dev/mmcblk0p4 /mnt/us vfat rw 0 0\n")
+            calls = []
+
+            def run(argv):
+                calls.append(argv[0])
+                if argv[0] == "umount":
+                    open(mounts, "w").write("")
+                if argv[0] == "mount":
+                    open(mounts, "w").write("/dev/mmcblk0p4 /mnt/us vfat rw 0 0\n")
+                return 0
+            u = LegacyGadgetExport("/dev/mmcblk0p4", "/mnt/us", mounts, run)
+            u.start(); self.assertTrue(u.active())
+            u.stop()
+            self.assertEqual(calls, ["umount", "modprobe", "rmmod", "mount"])
+            calls.clear()
+            open(mounts, "w").write("/dev/mmcblk0p4 /mnt/us vfat rw 0 0\n")
+            u2 = LegacyGadgetExport("/dev/mmcblk0p4", "/mnt/us", mounts, lambda a: (calls.append(a[0]), 1 if a[0] == "modprobe" else (open(mounts, "w").write("") if a[0] == "umount" else 0) and 0)[1])
+            with self.assertRaises(OSError):
+                u2.start()
+            self.assertIn("mount", calls)  # partition is given back after a failed export
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,63 @@
+{
+  "family": "lab126-wario",
+  "status": "derived from Amazon's published kernel source; NOT verified on any device",
+  "source": {
+    "repo": "https://github.com/katadelos/linux-3.0.35-lab126",
+    "commit": "7ac2585f384573da8cbdcc987a3503e2e6ff1fb4",
+    "origin": "Kindle_src_5.10.1.1 (Amazon GPL source release), re-uploaded; README states compatibility with PW2, PW3, KV, KT2 (imx60_wario_defconfig) and KOA (imx60_duet_defconfig)",
+    "not_covered": "Kindle Basic 2024 (KT6) and every device newer than these: they need the kernel source of their own firmware release"
+  },
+  "soc": {"value": "NXP/Freescale i.MX 6SoloLite (SOC_IMX6SL, ARM Cortex-A9 single core, ARMv7)", "source": "arch/arm/configs/imx60_wario_defconfig: CONFIG_SOC_IMX6SL, MACHINE_START(MX6SL_WARIO) in arch/arm/mach-mx6/board-mx6sl_wario.c"},
+  "kernel": {"version": "3.0.35", "localversion": "-lab126", "defconfig_wario": "imx60_wario_defconfig", "defconfig_duet": "imx60_duet_defconfig",
+             "build": "needs patches/lab126-3.0.35/0001 for GCC 13 + binutils 2.42 (see kernel/patches); image types zImage; U-Boot uImage wrapping is done by the Amazon build, not verified here"},
+  "boot_interface": {
+    "cmdline_default": "rootwait log_pos_goal=0x8fff0000 console=ttymxc0,115200 root=/dev/mmcblk0p1 ro ip=off quiet video=mxcepdcfb:E60,bpp=8,x_mem=3M",
+    "atags_required": ["ATAG_SERIAL16 (0x5441000a)", "ATAG_REVISION16 (0x5441000b) = board id", "ATAG_MACADDR (0x5441000d)", "ATAG_BOOTMODE (0x5441000f)"],
+    "note": "board id, serial, MAC and boot mode reach the kernel as ATAGs from the bootloader and are exposed as /proc/board_id, /proc/usid, /proc/mac_addr, /proc/bootmode. Any replacement boot chain has to pass them.",
+    "source": "arch/arm/kernel/setup.c, arch/arm/mach-mx6/boardid.c, defconfig CONFIG_CMDLINE"
+  },
+  "board_id": {
+    "format": "16-char string; characters 3..5 select the board variant, the rest the revision (BOARD_IS_ macros)",
+    "codenames_in_source": {"Pinot": ["02A", "027", "02E", "02F"], "Icewine/Wario": ["019", "025", "026", "047", "048", "01A", "01B"], "Bourbon": ["051", "062"],
+                            "Muscat": ["067", "068", "13G"], "Whisky": ["078", "079"], "Woody": ["07F"], "Heisenberg/Eanab": ["118"]},
+    "mapping_to_marketing_names": "NOT in the source; must be established from real devices (/proc/board_id) before any identification rule is written",
+    "source": "include/boardid.h"
+  },
+  "display": {
+    "driver": "mxc_epdc_fb (module, CONFIG_FB_MXC_EINK_PANEL=m), /dev/fb0, 8 bpp grayscale",
+    "userspace_api": "include/linux/mxcfb.h: MXCFB_SEND_UPDATE (_IOW 'F' 0x2E), MXCFB_WAIT_FOR_UPDATE_COMPLETE (_IOWR 'F' 0x2F), MXCFB_SET_WAVEFORM_MODES, MXCFB_SET_TEMPERATURE, MXCFB_SET_AUTO_UPDATE_MODE, MXCFB_SET_UPDATE_SCHEME, MXCFB_SET_PWRDOWN_DELAY",
+    "panels_in_source": [
+      {"name": "E60_V220 (e60_pinot)", "xres": 1024, "yres": 758},
+      {"name": "EN060OC1-3CE-225", "xres": 1440, "yres": 1080, "flag": "FLAG_SCAN_X_INVERT"},
+      {"name": "ED060TC1-3CE", "xres": 1448, "yres": 1072},
+      {"name": "E60_V220_WJ / ED060SCP", "xres": 800, "yres": 600},
+      {"name": "20150722_EN060TC1_1CE (whisky)", "xres": 1072, "yres": 1448, "flag": "FLAG_SCAN_X_INVERT"}
+    ],
+    "note": "the panel in use is chosen at runtime (panel id); which physical device uses which panel is not stated in the source. Waveform data is loaded as firmware (not in the source tree).",
+    "source": "arch/arm/mach-mx6/board-mx6sl_wario.c (fb_videomode definitions, panel_modes[])"
+  },
+  "touch": {"drivers": ["zforce2 (Neonode zForce, I2C 0x50, module TOUCHSCREEN_ZFORCE2)", "cyttsp4 (Cypress TrueTouch gen4, I2C 0x24, modules TOUCHSCREEN_CYPRESS_CYTTSP4*, uses firmware binary)"],
+            "source": "board-mx6sl_wario.c mxc_i2c1_board_info; defconfig"},
+  "keys_and_sensors": {"power": "MAX77696 on-key -> KEY_POWER", "page_keys": "fsr_keypad (I2C 0x58, force-sensing, KEY_PAGEUP / KEY_PAGEDOWN)",
+                       "hall": "platform device wario_hall", "als": "MAX44009 (I2C 0x4A)", "proximity": "wario_prox (I2C 0x0D), sx9500 (I2C 0x28)", "haptics": "drv26xx (I2C 0x59)"},
+  "pmic": {"chip": "Maxim MAX77696 (I2C 0, bus address MAX77696_I2C_ADDR) providing: battery gauge, charger, frontlight driver, LEDs, RTC, on-key, display/VCOM supplies, GPIO",
+           "source": "board-mx6sl_wario.c, drivers/mfd/max77696-*, drivers/power/max77696-*"},
+  "sysfs": {
+    "battery_capacity": "/sys/class/power_supply/max77696-battery/capacity",
+    "battery_status": "/sys/class/power_supply/max77696-battery/status",
+    "charger_online": "/sys/class/power_supply/max77696-charger/online",
+    "frontlight_brightness": "/sys/class/backlight/max77696-bl/brightness",
+    "frontlight_max": "/sys/class/backlight/max77696-bl/max_brightness (driver constant MAX_BRIGHTNESS = 0xFFF = 4095)",
+    "note": "names come from the driver source (MAX77696_PSY_BATT_NAME, MAX77696_CHARGER_NAME, MAX77696_BL_NAME); the backlight misc device 'frontlight' also exists. wifi operstate depends on the interface name chosen by the Wi-Fi driver.",
+    "source": "include/linux/mfd/max77696.h, drivers/video/backlight/max77696-bl.c"
+  },
+  "wifi_bt": {"base_variant": "Atheros AR6003 / ath6kl over SDIO (usdhc3, modules ATH6KL, AR6003)", "woody_variant (duet config)": "Broadcom 4343W (bcmdhd) with UART3 Bluetooth",
+              "source": "board-mx6sl_wario.c, defconfigs"},
+  "storage": {"emmc": "usdhc2 (index 1), 8-bit, always present; boot partition switching patches (eMMC boot partition) in patches/",
+              "root": "root=/dev/mmcblk0p1 (ro) in the default cmdline; diagnostics image uses mmcblk0p2 (Makefile.lab126)",
+              "partition_table_beyond_this": "not in the kernel source; must be read from a real device (tools/hwdiag.sh)",
+              "falcon": "CONFIG_FALCON (fast boot, bios address 0x9F5F0000) enabled only in imx60_duet_defconfig"},
+  "usb": "ARC USB OTG gadget (USB_GADGET_ARC), g_serial module in defconfig; mass-storage gadget would need g_mass_storage or configfs-equivalent legacy module in 3.0.35 (no configfs gadget API)",
+  "suspend": "mx6_suspend.S / mx6sl_wfi.S, PM_SLEEP present",
+  "rtc": "MAX77696 RTC plus i.MX SNVS RTC"
+}

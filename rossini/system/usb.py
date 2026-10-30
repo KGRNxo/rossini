@@ -63,3 +63,37 @@ class UsbExport:
             self._w("functions/mass_storage.usb0/lun.0/file", "")
         if not self.mounted() and self.run(["mount", self.device, self.mountpoint]) != 0:
             raise OSError("Bücherpartition konnte nicht wieder eingebunden werden")
+
+
+class LegacyGadgetExport:
+    """USB mass-storage export for kernels without configfs gadgets (Lab126 3.0.35): the g_file_storage module.
+    Same safety rule as UsbExport: the partition is unmounted first and mounted again on stop()."""
+    def __init__(self, device, mountpoint, mounts="/proc/mounts", run=None, module="g_file_storage"):
+        self.device, self.mountpoint, self.mounts, self.module = device, mountpoint, mounts, module
+        self.run = run or (lambda argv: os.spawnvp(os.P_WAIT, argv[0], argv))
+        self._active = False
+
+    def mounted(self):
+        with open(self.mounts) as f:
+            return any(line.split()[0] == self.device for line in f if line.strip())
+
+    def active(self):
+        return self._active
+
+    def start(self):
+        os.sync()
+        if self.mounted() and self.run(["umount", self.mountpoint]) != 0:
+            raise OSError("Bücherpartition ist in Benutzung und kann nicht freigegeben werden")
+        if self.mounted():
+            raise OSError("Bücherpartition ist noch eingebunden")
+        if self.run(["modprobe", self.module, f"file={self.device}", "removable=1", "stall=0"]) != 0:
+            self.run(["mount", self.device, self.mountpoint])
+            raise OSError("USB-Gadget konnte nicht gestartet werden")
+        self._active = True
+
+    def stop(self):
+        if self._active:
+            self.run(["rmmod", self.module])
+            self._active = False
+        if not self.mounted() and self.run(["mount", self.device, self.mountpoint]) != 0:
+            raise OSError("Bücherpartition konnte nicht wieder eingebunden werden")

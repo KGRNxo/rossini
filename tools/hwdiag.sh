@@ -23,6 +23,7 @@ cat_f() { for f in "$@"; do [ -r "$f" ] && { printf -- '--- %s\n' "$f"; head -c 
   sect network;      for d in /sys/class/net/*; do [ -e "$d" ] && echo "$(basename "$d") $(cat "$d/address" 2>/dev/null | sed 's/\(..:..:..\):.*/\1:xx:xx:xx/')"; done
   sect usb_gadget;   ls /sys/class/udc /sys/kernel/config/usb_gadget 2>/dev/null
   sect suspend;      cat_f /sys/power/state /sys/power/wakeup_count
+  sect lab126;       cat_f /proc/board_id /proc/idme/board_id /proc/panel_id /proc/bootmode /proc/postmode; for f in /proc/usid; do [ -r "$f" ] && { printf -- '--- %s (first 4 chars only)\n' "$f"; head -c 4 "$f"; echo; }; done
   sect modules;      cat_f /proc/modules
   sect release;      cat_f /etc/os-release /etc/version /system/version.txt
 } > "$out" 2>&1

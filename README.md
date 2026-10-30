@@ -5,7 +5,7 @@ Rossini OS is the product; Rossini Reader is an application inside it; KOReader 
 
 **Honest status (read this first):** nothing here runs on a Kindle yet. The userland (library, reader, shell, updater,
 recovery, installer logic) is implemented and tested on a PC and boots in QEMU on an x86_64 development target. There is
-no Kindle kernel, device tree, bootloader work, E-Ink driver or flashing procedure, and the installer refuses every real device.
+Amazon's published kernels for the supported Kindles build with a current toolchain and Rossini has matching E-Ink display backends, but nothing has booted on a device, there is no flashing procedure, and the installer refuses every real device. For the Kindle 2024 (KT6) Amazon's own bootloader source shows it only accepts Amazon-signed images unless Amazon unlocks the device ([docs/hardware/amazon-sources.md](docs/hardware/amazon-sources.md)).
 The exact state per component is in [docs/STATUS.md](docs/STATUS.md); what blocks the hardware port is in
 [docs/hardware/README.md](docs/hardware/README.md).
 

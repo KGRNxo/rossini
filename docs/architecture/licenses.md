@@ -19,6 +19,9 @@
 | libarchive (bsdtar) | rootfs (CBR) | BSD-2-Clause | |
 | wpa_supplicant | Buildroot ARM image | BSD-3-Clause | |
 | Buildroot | build/arm | GPL-2.0+ | build system only |
+| Amazon Linux kernels (3.0.35-lab126, 4.9) | fetched at build time, patches in kernel/patches | GPL-2.0 | Amazon's published source releases; BUILD_HOW-TO disclaimers apply to their build scripts |
+| Amazon U-Boot (UFBL) | read for analysis only, not built or shipped | GPL-2.0+ | |
+| musl libc, Buildroot internal toolchain | build/arm lab126 image | MIT / GPL | |
 | KOReader | **not included** | AGPL-3.0 | not needed any more for PDF/DjVu/MOBI; remains a candidate for crengine-quality layout |
 
 Redistributing any image requires shipping or offering the corresponding sources of the GPL/LGPL components; this has not

@@ -9,3 +9,5 @@ releases/*.tar.gz
 releases/*.sha256
 rossini-diagnose-*.json
 rossini-hwdiag-*.txt
+build/kernel/
+build/arm/

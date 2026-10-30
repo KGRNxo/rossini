@@ -24,7 +24,9 @@ boot-chain tests and 1 ARMv7 (Buildroot) boot test, all passing (`tools/test-all
 | Connect: OPDS, WLAN (wpa_supplicant control), upload server, folder sync, WebDAV sync (ETag), credentials file (0600) | yes | yes (local servers, fake wpa_cli) | partly (loopback) | no | WLAN never run against a real supplicant/radio; credentials not encrypted at rest; SFTP not implemented; not tested against a real Calibre/Nextcloud |
 | USB mass-storage export (configfs gadget, unmounts before exporting) | yes | yes (fake configfs) | no | no | MTP not implemented; needs a UDC and a separate vfat books partition |
 | SDK | manifest validation only | yes | no | no | No app runtime or sandbox |
-| Board support (kernel, device tree, drivers) | **no** | - | - | no | All four Kindle profiles are `research`; KT6 is empty |
+| Board support: Amazon kernels (KT6 4.9 MediaTek; PW2/PW3/KV/KT2 and Oasis 3.0.35 i.MX6SL) | build recipes + patches | yes (patch-apply and ABI tests) | no | no | Both kernels compile with GCC 13 (KT6: zImage, mt8110-cava.dtb, 160+ modules incl. hwtcon_v2, goodix, pt5; wario: zImage + 35 modules). Never booted anywhere: there is no emulation of these SoCs and no device access. Device trees/configs are Amazon's unchanged |
+| Display backend for real panels: i.MX6 EPDC (3.0.35) and MediaTek HWTCON (KT6) | yes | yes (fake framebuffer; struct layouts and ioctl numbers compile-checked with the ARM compiler against Amazon's headers) | no | no | Waveform tuning per panel/temperature is unknown; waveform firmware not available |
+| Board profiles | KT6, PW2, PW3, Voyage, KT2, Oasis (all `research`) | yes (gate refuses all) | n/a | no | Facts are from Amazon source, flagged unverified; KT6 identification rule is a candidate only |
 | Buildroot ARMv7 cross build | yes | yes | yes (vexpress-a9, kernel 6.12.51) | - | Reference board, not a Kindle SoC |
 | Reproducible build (x86_64 images) | yes | yes (two builds, identical hashes) | - | - | Same host toolchain only; Buildroot output not yet checked for reproducibility |
 

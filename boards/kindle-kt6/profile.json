@@ -1,69 +1,77 @@
 {
   "id": "kindle-kt6",
-  "name": "Amazon Kindle Basic (2024), model family KT6",
+  "name": "Amazon Kindle (11th generation, 2024 release), code name Rossini",
   "kind": "hardware",
   "release_status": "research",
-  "arch": null,
+  "arch": "armv7",
+  "family": "amazon-rossini",
   "identification": {
     "rules": [],
-    "note": "No identification rule exists: model, SoC and bootloader must be confirmed from real device data (tools/hwdiag.sh) before any rule is written."
+    "candidate_rule_from_source": {
+      "fact": "board_id",
+      "regex": "^.{3}(3M5|3GM).*$",
+      "status": "unverified: derived from U-Boot source, not from a device"
+    },
+    "note": "The rule is not active until a real KT6's board_id has been read and matches. Then it is added to `rules`."
   },
   "soc": {
-    "value": null,
+    "value": "MediaTek MT8512 family ('MT8110 Bellatrix' platform), 32-bit ARM (Cortex-A7 per mt8512.dtsi PMU node), PSCI 0.2",
     "verified": false,
-    "source": null
-  },
-  "bootloader": {
-    "value": null,
-    "verified": false,
-    "source": null
+    "source": "Amazon source release 5.19.6 (see family file)"
   },
   "kernel_base": {
-    "value": null,
+    "value": "Linux 4.9-lab126, mt8110-bellatrix_defconfig, dtb mt8110-cava",
     "verified": false,
-    "source": null
+    "source": "Amazon source release"
+  },
+  "bootloader": {
+    "value": "U-Boot UFBL, signed FIT, secure boot fuses, anti-rollback, fastboot with Amazon-issued unlock",
+    "verified": false,
+    "source": "U-Boot source in the release",
+    "policy": "locked: third-party kernels are rejected on production devices"
   },
   "display": {
-    "value": null,
+    "value": "MediaTek HWTCON v2, 1448x1072 panel, 8bpp",
     "verified": false,
-    "source": null
+    "backend": "hwtcon:/dev/fb0",
+    "base_rotation": 90,
+    "note": "base_rotation 90 is an assumption for a landscape-native panel; check fb0 rotate/geometry on the device"
   },
   "touch": {
-    "value": null,
-    "verified": false,
-    "source": null
+    "value": "Parade TrueTouch or Goodix GT6861",
+    "verified": false
   },
   "frontlight": {
-    "value": null,
-    "verified": false,
-    "source": null
+    "value": "SGM3756 (PWM)",
+    "verified": false
   },
   "battery": {
-    "value": null,
-    "verified": false,
-    "source": null
+    "value": "ROHM BD71828 power supply bd71827_bat / bd71827_ac",
+    "verified": false
   },
   "wifi": {
-    "value": null,
-    "verified": false,
-    "source": null
+    "value": "MediaTek CONSYS",
+    "verified": false
   },
   "usb": {
-    "value": null,
+    "value": "configfs gadget (kernel 4.9)",
     "verified": false,
-    "source": null
+    "mode": "configfs"
   },
   "storage_layout": {
-    "value": null,
-    "verified": false,
-    "source": null
+    "value": "eMMC; partition 'kernel' holds the FIT image",
+    "verified": false
   },
   "suspend": {
     "value": null,
-    "verified": false,
-    "source": null
+    "verified": false
   },
-  "sysfs": {},
+  "sysfs": {
+    "battery_capacity": "/sys/class/power_supply/bd71827_bat/capacity",
+    "battery_status": "/sys/class/power_supply/bd71827_bat/status",
+    "frontlight_brightness": "/sys/class/backlight/sgm3756/brightness",
+    "frontlight_max": "/sys/class/backlight/sgm3756/max_brightness"
+  },
   "slots": {},
   "install_method": null,
   "evidence": {
@@ -73,8 +81,11 @@
     "recovery_independent": false
   },
   "blockers": [
-    "Device facts not collected",
-    "Bootloader signature policy unknown",
-    "No tested independent recovery path"
+    "Locked production bootloader: signed FIT with Amazon production key + anti-rollback; unlock requires Amazon (source of the unlock check is not published)",
+    "No tested independent recovery path",
+    "board_id of a real KT6 not read",
+    "eMMC partition table and idme layout not in the source",
+    "E-Ink waveform firmware is not in the source release",
+    "Wi-Fi (CONSYS) firmware not in the source release"
   ]
 }

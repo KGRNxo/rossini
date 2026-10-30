@@ -17,10 +17,13 @@ def main(argv=None):
     ap.add_argument("--pubkey", help="trusted public key file (hex)")
     ap.add_argument("--backup-dir", default=os.path.expanduser("~/RossiniBackups"))
     ap.add_argument("--report-dir", default=".")
+    ap.add_argument("--board-id", help="board_id read on the device (cat /proc/idme/board_id); USB storage alone cannot reveal it")
     a = ap.parse_args(argv)
 
     print("1/6 Gerät lesen …")
     facts = probe.read_facts(a.mount)
+    if a.board_id:
+        facts["board_id"] = a.board_id.strip()
     profiles = gate.load_profiles()
     image_ok, image_board = False, None
     if a.image and a.pubkey:
