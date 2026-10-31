@@ -23,3 +23,9 @@ Für Audits `.agents/skills/context-efficient-audit/SKILL.md`, für Implementier
 
 ## Projektbezug
 E-Reader-Betriebssystem in Python mit QEMU/Kernel-Unterstützung. Keine realen Geräte-Flash-/Boot-Fähigkeiten behaupten; Installer-Sperren und `docs/STATUS.md` sowie Hardwaregrenzen respektieren.
+
+## Impeccable bei allen UI-/UX-Aufgaben
+
+Für Design, UI/UX, Barrierefreiheit, Responsive-/Adaptive-Layouts und visuelle Reviews den echten **offiziellen Impeccable Codex-Skill** `$impeccable` verwenden, wenn tatsächlich installiert und geladen. Vor der Arbeit Verfügbarkeit und benötigte Referenzen prüfen. Der projektbezogene Installationsbefehl liegt in `.codex/install-impeccable.sh` und muss ausdrücklich ausgeführt werden; dies geschieht nicht automatisch. Ohne Original-Skill den Integrationsskill `.agents/skills/impeccable-ui-integration/SKILL.md` methodisch nutzen und die fehlende tatsächliche Integration kenntlich machen.
+
+Produktanforderungen, `DESIGN.md` und bestehende Identität, native Standards, Datenschutz und Sicherheit bleiben bindend. Relevante UI-Zustände, Farben, Kontraste, Typografie, Dark/Light, Accessibility, verschiedene Bildschirmgrößen und wirkliche Renderings soweit möglich prüfen. Impeccable ersetzt nicht Context Mode oder Ponytail. Keine Backend-only-Designarbeit und kein automatisches Mergen oder Veröffentlichen.
