@@ -7,3 +7,9 @@ Claude Code ist der primaere Entwicklungsagent dieses Repositorys. Die vollstaen
 Context Mode und Ponytail durchgehend anwenden; echte Plugins/MCP/Hooks nur nach Pruefung nutzen. Ponytail `full` nur wenn unterstuetzt. Impeccable fuer UI/UX, wenn vorhanden. Nie RTK und Boost gleichzeitig auf denselben Befehl anwenden. Vollstaendige Fehlerdiagnostik erhalten. Keine erfundenen Testergebnisse, keine eigenmaechtigen externen Installationen, Merges oder Deployments.
 
 Codex bleibt optionaler Zweitagent mit denselben `AGENTS.md`-Qualitaetsregeln.
+
+<!-- ai-workflow-shared-v1 -->
+## Gemeinsame Entwicklungsregeln
+Lies und beachte `docs/AI_WORKFLOW.md` fuer jede Entwicklungsaufgabe in diesem Repository.
+Bestehende spezifische Regeln dieser Datei bleiben gueltig.
+<!-- /ai-workflow-shared-v1 -->
