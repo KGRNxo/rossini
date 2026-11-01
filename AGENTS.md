@@ -29,3 +29,9 @@ E-Reader-Betriebssystem in Python mit QEMU/Kernel-Unterstützung. Keine realen G
 Für Design, UI/UX, Barrierefreiheit, Responsive-/Adaptive-Layouts und visuelle Reviews den echten **offiziellen Impeccable Codex-Skill** `$impeccable` verwenden, wenn tatsächlich installiert und geladen. Vor der Arbeit Verfügbarkeit und benötigte Referenzen prüfen. Der projektbezogene Installationsbefehl liegt in `.codex/install-impeccable.sh` und muss ausdrücklich ausgeführt werden; dies geschieht nicht automatisch. Ohne Original-Skill den Integrationsskill `.agents/skills/impeccable-ui-integration/SKILL.md` methodisch nutzen und die fehlende tatsächliche Integration kenntlich machen.
 
 Produktanforderungen, `DESIGN.md` und bestehende Identität, native Standards, Datenschutz und Sicherheit bleiben bindend. Relevante UI-Zustände, Farben, Kontraste, Typografie, Dark/Light, Accessibility, verschiedene Bildschirmgrößen und wirkliche Renderings soweit möglich prüfen. Impeccable ersetzt nicht Context Mode oder Ponytail. Keine Backend-only-Designarbeit und kein automatisches Mergen oder Veröffentlichen.
+
+<!-- ai-workflow-shared-v1 -->
+## Gemeinsame Entwicklungsregeln
+Lies und beachte `docs/AI_WORKFLOW.md` fuer jede Entwicklungsaufgabe in diesem Repository.
+Bestehende spezifische Regeln dieser Datei bleiben gueltig.
+<!-- /ai-workflow-shared-v1 -->
