@@ -71,3 +71,12 @@ minimaler Ressourcenverbrauch.
 Vorhandene projektspezifische Regeln beachten.
 Fehlende Plugins nicht als aktiv ausgeben.
 <!-- END GLOBAL-CODING-WORKFLOW -->
+
+<!-- claude-efficiency-stack-v1 -->
+## Token Optimizer, Context Mode und Ponytail
+
+- Vor der Nutzung echte Plugin-, Hook-, Skill- und MCP-Verfügbarkeit prüfen. Diese Markdown-Datei installiert nichts.
+- In Claude Code **Token Optimizer** für Verbrauch, Wiederholungen und Kontextkontinuität, **Context Mode** für große Toolausgaben, deren Indexierung und gezielte Suche, **Ponytail `full`** für schlanke vollständige Lösungen nutzen, soweit verfügbar.
+- Keine doppelte Komprimierung. Bei Überschneidungen nach Prüfung der tatsächlichen Version nur lokale Benutzereinstellungen anpassen (`TOKEN_OPTIMIZER_BASH_COMPRESS=0`, `TOKEN_OPTIMIZER_READ_CACHE_DELTA=0`, `TOKEN_OPTIMIZER_READ_CACHE_MODE=shadow`); keine persönlichen Einstellungen oder Secrets committen.
+- Originale Fehlerausgaben, Exit-Codes, Zeilenangaben, Testergebnisse und Quellen müssen abrufbar bleiben. Tests nicht abschwächen oder ohne Anlass wiederholen. Korrektheit, Sicherheit, Datenschutz, Accessibility und Anforderungen haben Vorrang. Einsparungen nur bei Messbeleg behaupten; fehlende Plugins nicht vortäuschen oder ungefragt installieren.
+<!-- /claude-efficiency-stack-v1 -->
