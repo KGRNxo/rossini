@@ -1,3 +1,32 @@
+<!-- BEGIN IMPLEMENTATION-FIRST-WORKFLOW -->
+## Verbindlicher Entwicklungsmodus: IMPLEMENTATION FIRST
+
+Diese Regel gilt projektübergreifend, solange der Nutzer keinen anderen Arbeitsmodus ausdrücklich vorgibt. Sie ergänzt bestehende Entwicklungs- und Sicherheitsregeln. Korrektheit, Datensicherheit und explizite Nutzeranforderungen haben weiterhin Vorrang.
+
+### Priorität und Arbeitsablauf
+
+1. Implementiere zuerst alle umsetzbaren, noch offenen oder unvollständigen Aufgaben der vorhandenen Roadmaps und Arbeitsaufträge. Optimiere danach systematisch Qualität, Stabilität, Performance, Speicher- und Ressourcenverbrauch sowie UI/UX. Bei unmittelbarem technischem Risiko darf die notwendige Optimierung früher erfolgen.
+2. Eine abgeschlossene Einzelaufgabe ist **kein** Grund, den Arbeitsdurchlauf zu beenden. Beginne selbstständig mit der nächsten klar umsetzbaren Aufgabe. Vermeide künstliche Zwischenabschlüsse, wiederholte Bestandsaufnahmen und reine Berichte ohne Implementierung.
+3. Nutze vorhandene Roadmaps und tatsächlichen Code als Arbeitsgrundlage. Prüfe vor Änderungen den realen Stand und vermeide Doppelarbeit, Platzhalter, Scheinimplementierungen und unnötige Architekturumbauten.
+4. Arbeite innerhalb der verfügbaren Sitzung selbstständig weiter, bis keine umsetzbare Arbeit mehr möglich ist oder eine echte technische Grenze erreicht wird. Bei Sitzungs-/Kontextgrenzen dokumentiere präzise Fortschritt und nächsten Schritt. Behaupte nicht, im Hintergrund weiterzuarbeiten.
+
+### Tests während der Implementierungsphase
+
+5. Führe gezielte Tests für geänderte Komponenten, notwendige Build-/Compileprüfungen, relevante CI-Guards und sicherheitskritische Prüfungen durch. Behebe erkannte Regressionen direkt.
+6. Starte **nicht routinemäßig nach jeder Änderung** vollständige Unit-, UI-, Simulator- oder Geräte-Testläufe und warte nicht unnötig auf deren Abschluss, solange unabhängige Implementierungsaufgaben offen sind. Ein vollständiger Lauf ist dennoch zulässig, wenn er wegen hohem Risiko, einer konkreten Regression oder einer zwingenden Freigabevoraussetzung erforderlich ist.
+7. Bereits laufende Tests dürfen weiterlaufen. Bearbeite parallel konfliktfreie Aufgaben, soweit dies Ressourcen und gemeinsame Build-Artefakte erlauben. Dokumentiere ausstehende oder fehlgeschlagene Prüfungen wahrheitsgemäß.
+8. Die konsolidierte vollständige Test-, Simulator-, UI- und manuelle Abnahmephase folgt nach der Implementierungs- und Optimierungsphase, sofern der Nutzer sie nicht vorher verlangt.
+
+### Qualität, Git und Fortschritt
+
+9. Keine Kompromisse bei Datenintegrität, Datenschutz, Sicherheit, fachlicher Korrektheit oder erforderlichen Migrationen. Performance-Optimierung muss auch Nebenläufigkeit, Speichergrenzen, Skalierung und Fehlerfälle berücksichtigen.
+10. Committe und pushe abgeschlossene, sinnvoll abgegrenzte Änderungen regelmäßig auf Arbeitsbranches und erstelle bzw. aktualisiere passende Pull Requests. **Kein eigenständiger Merge nach `main`** ohne ausdrückliche Freigabe. Beachte bestehende PR-Stacks und Branch-Basen.
+11. Kennzeichne nicht implementierte, nicht fachlich verifizierte oder nicht getestete Punkte korrekt. Eine administrative Freigabe gilt nicht als fachlicher Einzelbeleg.
+12. Wenn Roadmaps fehlen, arbeite den expliziten Auftrag und nachvollziehbar erkannte Lücken ab, statt neue Aufgaben oder Anforderungen zu erfinden.
+
+**Erfolgskriterium:** Möglichst vollständige, produktionsreife Implementierung und anschließende Optimierung bei angemessener laufender Absicherung. Grüne Gesamttests allein ersetzen keine fertigen Funktionen.
+<!-- END IMPLEMENTATION-FIRST-WORKFLOW -->
+
 # Claude Code: verbindliche Projektanweisungen
 
 @AGENTS.md
